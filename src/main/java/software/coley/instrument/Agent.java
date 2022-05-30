@@ -1,6 +1,6 @@
 package software.coley.instrument;
 
-import software.coley.instrument.link.ServerCommunicationsLink;
+import software.coley.instrument.link.CommunicationsLink;
 import software.coley.instrument.link.ServerSocketCommunicationsLink;
 
 import java.io.IOException;
@@ -55,7 +55,7 @@ public class Agent {
 		if (server == null) {
 			// Determine port
 			int port = getPort(agentArgs);
-			ServerCommunicationsLink link = new ServerSocketCommunicationsLink(port);
+			CommunicationsLink<Server> link = new ServerSocketCommunicationsLink(port);
 			// Create server
 			server = new Server(instrumentation, link);
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> {

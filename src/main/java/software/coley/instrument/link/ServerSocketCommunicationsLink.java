@@ -1,7 +1,9 @@
 package software.coley.instrument.link;
 
-import software.coley.instrument.CommandConstants;
+import software.coley.instrument.command.CommandConstants;
 import software.coley.instrument.Server;
+import software.coley.instrument.command.AbstractCommand;
+import software.coley.instrument.command.CommandFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,11 +12,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * {@link ServerCommunicationsLink} implemented over {@link ServerSocket}/{@link Socket}.
+ * {@link CommunicationsLink} implemented over {@link ServerSocket}/{@link Socket} for {@link Server}s.
  *
  * @author Matt Coley
  */
-public class ServerSocketCommunicationsLink implements CommunicationsLink, ServerCommunicationsLink, CommandConstants {
+public class ServerSocketCommunicationsLink implements CommunicationsLink<Server>, CommandConstants {
 	private final ServerSocket serverSocket;
 	private Socket clientSocket;
 
@@ -48,29 +50,26 @@ public class ServerSocketCommunicationsLink implements CommunicationsLink, Serve
 	public void inputLoop(Server server) throws IOException {
 		int key;
 		InputStream is = clientSocket.getInputStream();
-		while (true) {
+		while (!clientSocket.isClosed()) {
+			// Read/handle commands
 			key = is.read();
-			if (key == ID_COMMON_STOP) {
-				// Client is disconnecting, we can end the input loop.
-				closeGracefully(clientSocket);
-				return;
-			} else {
-				// TODO: Length should be more than a single byte.
-				//  - What size makes sense?
-				//    - Consider we want to eventually transfer 'class bytecode' which can be megabytes in extreme cases.
-				//    - Want to keep the code clean
-				int length = is.read();
-				switch (key) {
-					// TODO: What commands should we offer?
-				}
-			}
+			AbstractCommand command = CommandFactory.create(key);
+			if (command == null)
+				throw new IllegalStateException("Failed to create command with type: " + key);
+			command.handleServer(server);
 		}
+	}
+
+	@Override
+	public void send(byte[] message) throws IOException {
+		if (clientSocket.isConnected())
+			clientSocket.getOutputStream().write(message);
 	}
 
 	private void closeGracefully(Socket socket) throws IOException {
 		if (socket != null && !socket.isClosed()) {
 			OutputStream out = socket.getOutputStream();
-			out.write(ID_COMMON_STOP);
+			out.write(ID_COMMON_SHUTDOWN);
 			out.flush();
 			socket.close();
 		}
