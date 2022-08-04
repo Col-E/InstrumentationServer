@@ -1,5 +1,6 @@
 package software.coley.instrument.command;
 
+import software.coley.instrument.command.impl.PropertiesCommand;
 import software.coley.instrument.command.impl.ShutdownCommand;
 
 import java.util.HashMap;
@@ -20,5 +21,6 @@ public class CommandFactory implements CommandConstants {
 	static {
 		COMMAND_SUPPLIERS.put(ID_COMMON_SHUTDOWN, ShutdownCommand::new);
 		COMMAND_SUPPLIERS.put(ID_COMMON_DISCONNECT, ShutdownCommand::new);
+		COMMAND_SUPPLIERS.put(ID_CL_REQUEST_PROPERTIES, PropertiesCommand::new);
 	}
 }

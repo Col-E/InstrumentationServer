@@ -9,6 +9,7 @@ import software.coley.instrument.link.CommunicationsLink;
  */
 public class Client extends Entity<CommunicationsLink<Client>> {
 	private final CommunicationsLink<Client> link;
+	private ClientListener listener;
 
 	/**
 	 * @param link
@@ -21,5 +22,20 @@ public class Client extends Entity<CommunicationsLink<Client>> {
 	@Override
 	public CommunicationsLink<Client> getLink() {
 		return link;
+	}
+
+	/**
+	 * @return Current listener.
+	 */
+	public ClientListener getListener() {
+		return listener;
+	}
+
+	/**
+	 * @param listener
+	 * 		New listener.
+	 */
+	public void setListener(ClientListener listener) {
+		this.listener = listener;
 	}
 }

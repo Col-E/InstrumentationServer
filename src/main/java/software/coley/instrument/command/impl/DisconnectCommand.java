@@ -4,9 +4,6 @@ import software.coley.instrument.Client;
 import software.coley.instrument.Server;
 import software.coley.instrument.command.AbstractCommand;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-
 /**
  * Handles disconnecting.
  *

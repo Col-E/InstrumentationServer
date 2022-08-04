@@ -1,12 +1,12 @@
 package software.coley.instrument.link;
 
-import software.coley.instrument.command.CommandConstants;
 import software.coley.instrument.Server;
 import software.coley.instrument.command.AbstractCommand;
+import software.coley.instrument.command.CommandConstants;
 import software.coley.instrument.command.CommandFactory;
 
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -49,13 +49,14 @@ public class ServerSocketCommunicationsLink implements CommunicationsLink<Server
 	@Override
 	public void inputLoop(Server server) throws IOException {
 		int key;
-		InputStream is = clientSocket.getInputStream();
+		DataInputStream is = new DataInputStream(clientSocket.getInputStream());
 		while (!clientSocket.isClosed()) {
 			// Read/handle commands
 			key = is.read();
 			AbstractCommand command = CommandFactory.create(key);
 			if (command == null)
 				throw new IllegalStateException("Failed to create command with type: " + key);
+			command.read(is);
 			command.handleServer(server);
 		}
 	}

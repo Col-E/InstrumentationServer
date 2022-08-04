@@ -5,8 +5,8 @@ import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.command.CommandConstants;
 import software.coley.instrument.command.CommandFactory;
 
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -34,13 +34,14 @@ public class ClientSocketCommunicationsLink implements CommunicationsLink<Client
 	@Override
 	public void inputLoop(Client client) throws IOException {
 		int key;
-		InputStream is = socket.getInputStream();
+		DataInputStream is = new DataInputStream(socket.getInputStream());
 		while (!socket.isClosed()) {
 			// Read/handle commands
 			key = is.read();
 			AbstractCommand command = CommandFactory.create(key);
 			if (command == null)
 				throw new IllegalStateException("Failed to create command with type: " + key);
+			command.read(is);
 			command.handleClient(client);
 		}
 	}

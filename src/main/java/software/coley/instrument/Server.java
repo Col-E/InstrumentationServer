@@ -25,7 +25,6 @@ public class Server extends Entity<CommunicationsLink<Server>> {
 		this.link = link;
 	}
 
-
 	/**
 	 * @return The magic thingy.
 	 */
