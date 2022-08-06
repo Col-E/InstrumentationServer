@@ -10,6 +10,12 @@ import software.coley.instrument.command.AbstractCommand;
  * @author Matt Coley
  */
 public class DisconnectCommand extends AbstractCommand {
+	private static final byte[] DATA = {ID_COMMON_DISCONNECT};
+
+	public DisconnectCommand() {
+		super(ID_COMMON_DISCONNECT);
+	}
+
 	@Override
 	public void handleClient(Client client) {
 		// Server shouldn't send this, but if its closing we need to stop as well.
@@ -22,7 +28,7 @@ public class DisconnectCommand extends AbstractCommand {
 	}
 
 	@Override
-	public int key() {
-		return ID_COMMON_DISCONNECT;
+	public byte[] generate() {
+		return DATA;
 	}
 }

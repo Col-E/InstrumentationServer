@@ -2,6 +2,7 @@ package software.coley.instrument.link;
 
 import software.coley.instrument.Entity;
 import software.coley.instrument.Server;
+import software.coley.instrument.command.AbstractCommand;
 
 import java.io.IOException;
 
@@ -36,7 +37,7 @@ public interface CommunicationsLink<T extends Entity<?>> {
 	 * @throws IOException
 	 * 		When the message could not be sent.
 	 */
-	void send(byte[] message) throws IOException;
+	void send(AbstractCommand message) throws IOException;
 
 	/**
 	 * Opens the communication link.

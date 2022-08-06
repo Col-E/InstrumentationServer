@@ -1,6 +1,7 @@
 package software.coley.instrument;
 
 import software.coley.instrument.link.CommunicationsLink;
+import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -31,8 +32,10 @@ public abstract class Entity<Link extends CommunicationsLink> {
 		//  - restart new one
 		CompletableFuture.runAsync(() -> {
 			try {
+				Logger.debug("Begin input loop");
 				getLink().inputLoop(this);
 			} catch (IOException ex) {
+				Logger.error("Error on input loop: " + ex);
 				throw new RuntimeException(ex);
 			}
 		}, Executors.newSingleThreadExecutor());
@@ -43,9 +46,11 @@ public abstract class Entity<Link extends CommunicationsLink> {
 	 */
 	public void stopInputLoop() {
 		try {
+			Logger.debug("Stopping input loop");
 			getLink().close();
-		} catch (Exception ignored) {
+		} catch (Exception ex) {
 			// We're shutting down anyways so no big deal.
+			Logger.warn("Error on stopping input loop" + ex);
 		}
 	}
 }

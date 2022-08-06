@@ -4,6 +4,7 @@ import software.coley.instrument.Server;
 import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.command.CommandConstants;
 import software.coley.instrument.command.CommandFactory;
+import software.coley.instrument.util.Logger;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -34,16 +35,18 @@ public class ServerSocketCommunicationsLink implements CommunicationsLink<Server
 	@Override
 	public void open() throws IOException {
 		closeGracefully(clientSocket);
+		Logger.debug("Awaiting client connection...");
 		clientSocket = serverSocket.accept();
+		Logger.debug("Client connected: " + clientSocket.getInetAddress());
 	}
 
 	@Override
 	public void close() throws IOException {
 		closeGracefully(clientSocket);
 		clientSocket = null;
-		if (!serverSocket.isClosed()) {
+		if (!serverSocket.isClosed())
 			serverSocket.close();
-		}
+		Logger.debug("Server closed");
 	}
 
 	@Override
@@ -52,23 +55,32 @@ public class ServerSocketCommunicationsLink implements CommunicationsLink<Server
 		DataInputStream is = new DataInputStream(clientSocket.getInputStream());
 		while (!clientSocket.isClosed()) {
 			// Read/handle commands
+			Logger.debug("Waiting for next command");
 			key = is.read();
 			AbstractCommand command = CommandFactory.create(key);
-			if (command == null)
+			if (command == null) {
+				Logger.debug("Received unknown command key: " + key);
 				throw new IllegalStateException("Failed to create command with type: " + key);
+			}
 			command.read(is);
+			Logger.debug("Received command: " + command);
 			command.handleServer(server);
 		}
 	}
 
 	@Override
-	public void send(byte[] message) throws IOException {
-		if (clientSocket.isConnected())
-			clientSocket.getOutputStream().write(message);
+	public void send(AbstractCommand command) throws IOException {
+		if (clientSocket.isConnected()) {
+			Logger.debug("Sending command: " + command);
+			clientSocket.getOutputStream().write(command.generate());
+		} else {
+			Logger.warn("Cannot send command, socket is closed");
+		}
 	}
 
 	private void closeGracefully(Socket socket) throws IOException {
 		if (socket != null && !socket.isClosed()) {
+			Logger.debug("Closing client socket...");
 			OutputStream out = socket.getOutputStream();
 			out.write(ID_COMMON_SHUTDOWN);
 			out.flush();

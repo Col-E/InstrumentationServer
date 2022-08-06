@@ -3,29 +3,30 @@ package software.coley.instrument.command.impl;
 import software.coley.instrument.Client;
 import software.coley.instrument.Server;
 import software.coley.instrument.command.AbstractCommand;
+import software.coley.instrument.util.Logger;
+
+import java.io.IOException;
 
 /**
- * Handles shutdown of entities.
+ * Basic ping reply.
  *
  * @author Matt Coley
  */
-public class ShutdownCommand extends AbstractCommand {
-	private static final byte[] DATA = {ID_COMMON_SHUTDOWN};
+public class PongCommand extends AbstractCommand {
+	private static final byte[] DATA = {ID_COMMON_PONG};
 
-	public ShutdownCommand() {
-		super(ID_COMMON_SHUTDOWN);
+	public PongCommand() {
+		super(ID_COMMON_PONG);
 	}
 
 	@Override
 	public void handleClient(Client client) {
-		// Server is closing, we should too.
-		client.stopInputLoop();
+		// no-op
 	}
 
 	@Override
 	public void handleServer(Server server) {
-		// Client requested we stop.
-		server.stopInputLoop();
+		// no-op
 	}
 
 	@Override

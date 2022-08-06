@@ -63,12 +63,18 @@ public class Agent {
 			}));
 		}
 		// Open link and start server.
-		server.getLink().open();
-		server.startInputLoop();
+		new Thread(() -> {
+			try {
+				server.getLink().open();
+				server.startInputLoop();
+			} catch (IOException ex) {
+				System.err.println("Failed to open agent server");
+			}
+		}).start();
 	}
 
 	private static int getPort(String agentArgs) {
-		if (agentArgs.contains("port=")) {
+		if (agentArgs != null && agentArgs.contains("port=")) {
 			try {
 				int startPos = agentArgs.indexOf("port=") + 5;
 				Matcher matcher = Pattern.compile("\\d+")

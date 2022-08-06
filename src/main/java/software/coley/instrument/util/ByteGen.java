@@ -30,6 +30,21 @@ public class ByteGen {
 
 	/**
 	 * @param data
+	 * 		byte to append.
+	 *
+	 * @return Self.
+	 */
+	public ByteGen appendByte(int data) {
+		try {
+			stream.writeByte(data);
+			return this;
+		} catch (IOException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+	/**
+	 * @param data
 	 * 		int to append.
 	 *
 	 * @return Self.

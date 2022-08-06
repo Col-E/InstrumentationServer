@@ -1,7 +1,6 @@
 package software.coley.instrument.command;
 
-import software.coley.instrument.command.impl.PropertiesCommand;
-import software.coley.instrument.command.impl.ShutdownCommand;
+import software.coley.instrument.command.impl.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,15 +11,17 @@ public class CommandFactory implements CommandConstants {
 
 	public static AbstractCommand create(int key) {
 		Supplier<AbstractCommand> supplier = COMMAND_SUPPLIERS.get(key);
-		if (supplier == null) {
-			throw new IllegalStateException("Unknown command key: " + key);
-		}
+		if (supplier == null)
+			return null;
 		return supplier.get();
 	}
 
 	static {
 		COMMAND_SUPPLIERS.put(ID_COMMON_SHUTDOWN, ShutdownCommand::new);
 		COMMAND_SUPPLIERS.put(ID_COMMON_DISCONNECT, ShutdownCommand::new);
+		COMMAND_SUPPLIERS.put(ID_COMMON_PING, PingCommand::new);
+		COMMAND_SUPPLIERS.put(ID_COMMON_PONG, PongCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_REQUEST_PROPERTIES, PropertiesCommand::new);
+		COMMAND_SUPPLIERS.put(ID_CL_SET_PROPERTY, SetPropertyCommand::new);
 	}
 }
