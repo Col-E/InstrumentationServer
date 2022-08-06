@@ -91,6 +91,6 @@ public class DemoTest implements ClientListener {
 
 	@Override
 	public void onReceiveLoadedClasses(String[] classNames) {
-		System.out.println("[Demo] Loaded classes: " + String.join("\n", classNames));
+		System.out.println("[Demo] Loaded classes: " + classNames.length);
 	}
 }
