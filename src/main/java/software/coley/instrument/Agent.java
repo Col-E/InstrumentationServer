@@ -2,6 +2,7 @@ package software.coley.instrument;
 
 import software.coley.instrument.link.CommunicationsLink;
 import software.coley.instrument.link.ServerSocketCommunicationsLink;
+import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
@@ -58,9 +59,7 @@ public class Agent {
 			CommunicationsLink<Server> link = new ServerSocketCommunicationsLink(port);
 			// Create server
 			server = new Server(instrumentation, link);
-			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-				server.stopInputLoop();
-			}));
+			Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stopInputLoop()));
 		}
 		// Open link and start server.
 		new Thread(() -> {
@@ -68,7 +67,7 @@ public class Agent {
 				server.getLink().open();
 				server.startInputLoop();
 			} catch (IOException ex) {
-				System.err.println("Failed to open agent server");
+				Logger.error("Failed to open agent server");
 			}
 		}).start();
 	}

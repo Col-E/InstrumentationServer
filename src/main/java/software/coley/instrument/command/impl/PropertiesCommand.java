@@ -17,7 +17,8 @@ import java.util.Map;
  * @author Matt Coley
  */
 public class PropertiesCommand extends AbstractCommand {
-	private String properties;
+	private static final char SEPARATOR = '\u0000';
+	private String properties = "";
 
 	public PropertiesCommand() {
 		super(ID_CL_REQUEST_PROPERTIES);
@@ -30,7 +31,7 @@ public class PropertiesCommand extends AbstractCommand {
 			if (properties == null)
 				throw new IllegalStateException("Properties string not set before usage!");
 			Map<String, String> propertiesMap = new HashMap<>();
-			String[] lines = properties.split("\n");
+			String[] lines = properties.split(String.valueOf(SEPARATOR));
 			for (String line : lines) {
 				int index = line.indexOf('=');
 				if (index > 0) {
@@ -46,7 +47,7 @@ public class PropertiesCommand extends AbstractCommand {
 	@Override
 	public void handleServer(Server server) throws IOException {
 		StringBuilder sb = new StringBuilder();
-		System.getProperties().forEach((key, value) -> sb.append(key).append('=').append(value).append('\n'));
+		System.getProperties().forEach((key, value) -> sb.append(key).append('=').append(value).append(SEPARATOR));
 		properties = sb.toString();
 		server.getLink().send(this);
 	}
@@ -70,6 +71,7 @@ public class PropertiesCommand extends AbstractCommand {
 	public String toString() {
 		if (properties == null)
 			return "PropertiesCommand[empty]";
-		return "PropertiesCommand[" + properties.replace("\n", ", ") + "]";
+		return "PropertiesCommand[" + properties.replaceAll("\\s+", "_")
+				.replace(String.valueOf(SEPARATOR), ", ") + "]";
 	}
 }

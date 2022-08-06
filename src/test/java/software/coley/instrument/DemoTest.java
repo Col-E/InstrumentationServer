@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Demo class.
  */
-public class DemoTest {
+public class DemoTest implements ClientListener {
 	static {
 		// Setup client logging (server will use defaults)
 		Logger.level = Logger.DEBUG;
@@ -39,10 +40,15 @@ public class DemoTest {
 			ProcessBuilder pb = new ProcessBuilder("java", agent, "-cp", "src/test/resources", "Runner");
 			pb.inheritIO();
 			start = pb.start();
-			// Send a property assignment request
+			// Setup our local client
 			Thread.sleep(500);
 			Client client = new Client();
-			client.setProperty("value", "value-implementation");
+			client.setListener(this);
+			client.startInputLoop();
+			// Send some requests
+			client.requestProperties();
+			client.requestSetProperty("value", "value has been modified");
+			client.requestLoadedClasses();
 			// Continue running for some duration
 			Thread.sleep(5_000);
 		} finally {
@@ -76,5 +82,15 @@ public class DemoTest {
 						}
 					});
 		}
+	}
+
+	@Override
+	public void onReceiveProperties(Map<String, String> properties) {
+		System.out.println("[Demo] Properties[" + properties.size() + "]");
+	}
+
+	@Override
+	public void onReceiveLoadedClasses(String[] classNames) {
+		System.out.println("[Demo] Loaded classes: " + String.join("\n", classNames));
 	}
 }

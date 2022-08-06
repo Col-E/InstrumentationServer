@@ -37,17 +37,22 @@ public class ClientSocketCommunicationsLink implements CommunicationsLink<Client
 		int key;
 		DataInputStream is = new DataInputStream(socket.getInputStream());
 		while (!socket.isClosed()) {
-			// Read/handle commands
-			Logger.debug("Waiting for next command");
-			key = is.read();
-			AbstractCommand command = CommandFactory.create(key);
-			if (command == null) {
-				Logger.debug("Received unknown command key: " + key);
-				throw new IllegalStateException("Failed to create command with type: " + key);
+			try {
+				// Read/handle commands
+				Logger.debug("Waiting for next command");
+				key = is.read();
+				AbstractCommand command = CommandFactory.create(key);
+				if (command == null) {
+					Logger.debug("Received unknown command key: " + key);
+					throw new IllegalStateException("Failed to create command with type: " + key);
+				}
+				command.read(is);
+				Logger.debug("Received command: " + command);
+				command.handleClient(client);
+			} catch (IOException ex) {
+				Logger.error("Input loop encountered error: " + ex);
+				throw ex;
 			}
-			command.read(is);
-			Logger.debug("Received command: " + command);
-			command.handleClient(client);
 		}
 	}
 
@@ -55,7 +60,12 @@ public class ClientSocketCommunicationsLink implements CommunicationsLink<Client
 	public void send(AbstractCommand command) throws IOException {
 		if (socket.isConnected()) {
 			Logger.debug("Sending command: " + command);
-			socket.getOutputStream().write(command.generate());
+			try {
+				socket.getOutputStream().write(command.generate());
+			} catch (IOException ex) {
+				Logger.error("Failed to send command: " + ex);
+				throw ex;
+			}
 		} else {
 			Logger.warn("Cannot send command, socket is closed");
 		}

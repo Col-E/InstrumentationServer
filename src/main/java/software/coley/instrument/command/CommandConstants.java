@@ -13,4 +13,5 @@ public interface CommandConstants {
 	//
 	int ID_CL_REQUEST_PROPERTIES = 100;
 	int ID_CL_SET_PROPERTY = 101;
+	int ID_CL_LOADED_CLASSES = 102;
 }

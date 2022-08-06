@@ -1,5 +1,7 @@
 package software.coley.instrument;
 
+import software.coley.instrument.command.impl.LoadedClassesCommand;
+import software.coley.instrument.command.impl.PropertiesCommand;
 import software.coley.instrument.command.impl.SetPropertyCommand;
 import software.coley.instrument.link.ClientSocketCommunicationsLink;
 import software.coley.instrument.link.CommunicationsLink;
@@ -41,6 +43,14 @@ public class Client extends Entity<CommunicationsLink<Client>> {
 	}
 
 	/**
+	 * @throws IOException
+	 * 		When the request cannot be sent.
+	 */
+	public void requestProperties() throws IOException {
+		getLink().send(new PropertiesCommand());
+	}
+
+	/**
 	 * @param key
 	 * 		Property key.
 	 * @param value
@@ -49,11 +59,19 @@ public class Client extends Entity<CommunicationsLink<Client>> {
 	 * @throws IOException
 	 * 		When the request cannot be sent.
 	 */
-	public void setProperty(String key, String value) throws IOException {
+	public void requestSetProperty(String key, String value) throws IOException {
 		SetPropertyCommand command = new SetPropertyCommand();
 		command.setKey(key);
 		command.setValue(value);
 		getLink().send(command);
+	}
+
+	/**
+	 * @throws IOException
+	 * 		When the request cannot be sent.
+	 */
+	public void requestLoadedClasses() throws IOException {
+		getLink().send(new LoadedClassesCommand());
 	}
 
 	/**
@@ -70,4 +88,6 @@ public class Client extends Entity<CommunicationsLink<Client>> {
 	public void setListener(ClientListener listener) {
 		this.listener = listener;
 	}
+
+
 }

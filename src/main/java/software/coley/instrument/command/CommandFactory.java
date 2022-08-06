@@ -23,5 +23,6 @@ public class CommandFactory implements CommandConstants {
 		COMMAND_SUPPLIERS.put(ID_COMMON_PONG, PongCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_REQUEST_PROPERTIES, PropertiesCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_SET_PROPERTY, SetPropertyCommand::new);
+		COMMAND_SUPPLIERS.put(ID_CL_LOADED_CLASSES, LoadedClassesCommand::new);
 	}
 }

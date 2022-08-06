@@ -1,5 +1,6 @@
 package software.coley.instrument;
 
+import java.lang.instrument.Instrumentation;
 import java.util.Map;
 
 /**
@@ -13,4 +14,10 @@ public interface ClientListener {
 	 * 		Remote properties map.
 	 */
 	void onReceiveProperties(Map<String, String> properties);
+
+	/**
+	 * @param classNames
+	 *        {@link Instrumentation#getAllLoadedClasses()}
+	 */
+	void onReceiveLoadedClasses(String[] classNames);
 }
