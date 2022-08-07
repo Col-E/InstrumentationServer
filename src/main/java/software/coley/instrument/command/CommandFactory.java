@@ -23,6 +23,11 @@ public class CommandFactory implements CommandConstants {
 		COMMAND_SUPPLIERS.put(ID_COMMON_PONG, PongCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_REQUEST_PROPERTIES, PropertiesCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_SET_PROPERTY, SetPropertyCommand::new);
+		COMMAND_SUPPLIERS.put(ID_CL_GET_FIELD, GetFieldCommand::new);
+		COMMAND_SUPPLIERS.put(ID_CL_SET_FIELD, SetFieldCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_LOADED_CLASSES, LoadedClassesCommand::new);
+		// TODO: RegisterClassLoadCommand - send client all new loaded classes
+		//   - GetClassCommand (requests/replies-with single class bytecode)
+		//   - Client can request all class names and request bytecode of things obviously not part of the JDK
 	}
 }

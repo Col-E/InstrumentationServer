@@ -1,8 +1,6 @@
 package software.coley.instrument;
 
-import software.coley.instrument.command.impl.LoadedClassesCommand;
-import software.coley.instrument.command.impl.PropertiesCommand;
-import software.coley.instrument.command.impl.SetPropertyCommand;
+import software.coley.instrument.command.impl.*;
 import software.coley.instrument.link.ClientSocketCommunicationsLink;
 import software.coley.instrument.link.CommunicationsLink;
 
@@ -63,6 +61,48 @@ public class Client extends Entity<CommunicationsLink<Client>> {
 		SetPropertyCommand command = new SetPropertyCommand();
 		command.setKey(key);
 		command.setValue(value);
+		getLink().send(command);
+	}
+
+	/**
+	 * @param owner
+	 * 		Declaring class of field.
+	 * @param name
+	 * 		Field name.
+	 * @param desc
+	 * 		Field desc.
+	 * @param value
+	 * 		Value to set. See {@link SetFieldCommand} for supported types.
+	 *
+	 * @throws IOException
+	 * 		When the request cannot be sent.
+	 */
+	public void requestSetStaticField(String owner, String name, String desc, String value) throws IOException {
+		SetFieldCommand command = new SetFieldCommand();
+		command.setOwner(owner);
+		command.setName(name);
+		command.setDesc(desc);
+		command.setValueText(value);
+		getLink().send(command);
+	}
+
+	/**
+	 * @param owner
+	 * 		Declaring class of field.
+	 * @param name
+	 * 		Field name.
+	 * @param desc
+	 * 		Field desc.
+	 *
+	 * @throws IOException
+	 * 		When the request cannot be sent.
+	 */
+	public void requestGetStaticField(String owner, String name, String desc) throws IOException {
+		GetFieldCommand command = new GetFieldCommand();
+		command.setOwner(owner);
+		command.setName(name);
+		command.setDesc(desc);
+		command.setValueText("");
 		getLink().send(command);
 	}
 

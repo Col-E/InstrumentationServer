@@ -5,7 +5,7 @@ import software.coley.instrument.ClientListener;
 import software.coley.instrument.Server;
 import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.util.ByteGen;
-import software.coley.instrument.util.TypeUtil;
+import software.coley.instrument.util.DescUtil;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -36,7 +36,7 @@ public class LoadedClassesCommand extends AbstractCommand {
 		Class<?>[] allLoadedClasses = server.getInstrumentation().getAllLoadedClasses();
 		classNames = new String[allLoadedClasses.length];
 		for (int i = 0; i < classNames.length; i++)
-			classNames[i] = TypeUtil.getName(allLoadedClasses[i]);
+			classNames[i] = DescUtil.getDescriptor(allLoadedClasses[i]);
 		server.getLink().send(this);
 	}
 

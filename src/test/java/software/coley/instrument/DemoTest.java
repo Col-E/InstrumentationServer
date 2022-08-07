@@ -1,6 +1,7 @@
 package software.coley.instrument;
 
 import org.junit.jupiter.api.Test;
+import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
@@ -41,16 +42,24 @@ public class DemoTest implements ClientListener {
 			pb.inheritIO();
 			start = pb.start();
 			// Setup our local client
-			Thread.sleep(500);
+			Thread.sleep(1500);
 			Client client = new Client();
 			client.setListener(this);
 			client.startInputLoop();
 			// Send some requests
 			client.requestProperties();
-			client.requestSetProperty("value", "value has been modified");
+			Thread.sleep(500);
+			client.requestSetProperty("key", "new_value");
+			Thread.sleep(2000);
+			client.requestSetProperty("alt-key", "alt_key_value");
+			Thread.sleep(1000);
+			client.requestGetStaticField("Runner", "key", DescUtil.STRING_DESC);
+			client.requestGetStaticField(ClassLoader.class.getName(), "scl", DescUtil.getDescriptor(ClassLoader.class));
+			Thread.sleep(500);
+			client.requestSetStaticField("Runner", "key", DescUtil.STRING_DESC, "alt-key");
+			Thread.sleep(1000);
 			client.requestLoadedClasses();
-			// Continue running for some duration
-			Thread.sleep(5_000);
+			Thread.sleep(3000);
 		} finally {
 			// Kill the remote process and delete the agent jar
 			if (start != null)
@@ -92,5 +101,10 @@ public class DemoTest implements ClientListener {
 	@Override
 	public void onReceiveLoadedClasses(String[] classNames) {
 		System.out.println("[Demo] Loaded classes: " + classNames.length);
+	}
+
+	@Override
+	public void onReceiveStaticFieldValue(String owner, String name, String desc, String valueText) {
+		System.out.println("[Demo] Static field " + owner + "." + name + " = " + valueText);
 	}
 }

@@ -20,4 +20,16 @@ public interface ClientListener {
 	 *        {@link Instrumentation#getAllLoadedClasses()}
 	 */
 	void onReceiveLoadedClasses(String[] classNames);
+
+	/**
+	 * @param owner
+	 * 		Declaring class of field.
+	 * @param name
+	 * 		Field name.
+	 * @param desc
+	 * 		Field desc.
+	 * @param valueText
+	 * 		Field value represented as text.
+	 */
+	void onReceiveStaticFieldValue(String owner, String name, String desc, String valueText);
 }

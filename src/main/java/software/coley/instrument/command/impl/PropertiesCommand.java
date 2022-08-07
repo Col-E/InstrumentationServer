@@ -71,7 +71,7 @@ public class PropertiesCommand extends AbstractCommand {
 	public String toString() {
 		if (properties == null)
 			return "PropertiesCommand[empty]";
-		return "PropertiesCommand[" + properties.replaceAll("\\s+", "_")
-				.replace(String.valueOf(SEPARATOR), ", ") + "]";
+		int count = properties.length() - properties.replace(String.valueOf(SEPARATOR), "").length();
+		return "PropertiesCommand[" + count + "]";
 	}
 }

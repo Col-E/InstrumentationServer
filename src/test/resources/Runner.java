@@ -1,7 +1,9 @@
 class Runner {
+	private static String key = "key";
+
 	public static void main(String[] args) throws Exception {
 		while (true) {
-			String v = getProperty("value");
+			String v = getProperty(key);
 			if (v == null) {
 				handleNoProperty();
 			} else {
