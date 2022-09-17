@@ -64,32 +64,33 @@ public class LiveTest {
 			// Update one key
 			client.sendBlocking(new SetPropertyCommand("key", "new_value"), reply -> {
 				System.out.println("> Key updated");
-			});
+			}).get();
+
+			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
 			// Update another
 			client.sendBlocking(new SetPropertyCommand("alt-key", "alt_key_value"), reply -> {
 				System.out.println("> Alt-key updated");
-			});
-			Thread.sleep(2000);
+			}).get();
 
 			// Request static field value
 			client.sendBlocking(new GetFieldCommand("Runner", "key", DescUtil.STRING_DESC), reply -> {
 				GetFieldCommand getFieldCommand = (GetFieldCommand) reply;
 				assertEquals("key", getFieldCommand.getValueText());
-			});
-			Thread.sleep(2000);
+			}).get();
 
 			// Set static field value to different value
-			client.sendBlocking(new SetFieldCommand("Runner", "key", DescUtil.STRING_DESC, "alt-key"), null);
+			client.sendBlocking(new SetFieldCommand("Runner", "key", DescUtil.STRING_DESC, "alt-key"), null).get();
+
+			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
 			// Request loaded class names
 			client.sendBlocking(new LoadedClassesCommand(), reply -> {
 				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) reply;
 				System.out.println("There are " + loadedClassesCommand.getClassNames().length + " classes");
-			});
-			Thread.sleep(2000);
+			}).get();
 		} finally {
 			// Kill the remote process and delete the agent jar
 			if (start != null)
