@@ -2,7 +2,9 @@ class Runner {
 	private static String key = "key";
 
 	public static void main(String[] args) throws Exception {
-		while (true) {
+		int count = 10;
+		while (count >= 0) {
+			count--;
 			String v = getProperty(key);
 			if (v == null) {
 				handleNoProperty();

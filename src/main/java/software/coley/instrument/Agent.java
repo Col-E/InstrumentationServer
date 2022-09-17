@@ -1,9 +1,5 @@
 package software.coley.instrument;
 
-import software.coley.instrument.link.CommunicationsLink;
-import software.coley.instrument.link.ServerSocketCommunicationsLink;
-import software.coley.instrument.util.Logger;
-
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.util.regex.Matcher;
@@ -56,20 +52,12 @@ public class Agent {
 		if (server == null) {
 			// Determine port
 			int port = getPort(agentArgs);
-			CommunicationsLink<Server> link = new ServerSocketCommunicationsLink(port);
 			// Create server
-			server = new Server(instrumentation, link);
-			Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stopInputLoop()));
+			server = new Server(instrumentation, port);
+			Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close()));
+			// Accept new client
+			server.acceptAsync(null);
 		}
-		// Open link and start server.
-		new Thread(() -> {
-			try {
-				server.getLink().open();
-				server.startInputLoop();
-			} catch (IOException ex) {
-				Logger.error("Failed to open agent server");
-			}
-		}).start();
 	}
 
 	private static int getPort(String agentArgs) {

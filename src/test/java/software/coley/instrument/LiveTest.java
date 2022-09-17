@@ -1,39 +1,54 @@
 package software.coley.instrument;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import software.coley.instrument.util.DescUtil;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import software.coley.instrument.command.impl.PingCommand;
+import software.coley.instrument.command.impl.PongCommand;
 import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Demo class.
+ * Demo setup using the {@code Runner} example class.
  */
-public class DemoTest implements ClientListener {
-	static {
+@Execution(ExecutionMode.CONCURRENT)
+public class LiveTest {
+	private static final String SERVER = "Server";
+	private static Path agentJarPath;
+
+	@BeforeAll
+	public static void setup() {
 		// Setup client logging (server will use defaults)
-		Logger.level = Logger.DEBUG;
-		Logger.isServer = false;
+		Logger.level = Logger.INFO;
+		// Create server jar from the latest compilation
+		try {
+			Path target = Paths.get("target");
+			Path classes = target.resolve("classes");
+			agentJarPath = target.resolve("instrumentation-server-SNAPSHOT.jar");
+			Files.deleteIfExists(agentJarPath);
+			pack(classes, agentJarPath);
+		} catch (IOException ex) {
+			fail("Could not setup agent jar", ex);
+		}
 	}
 
+
 	@Test
+	@ResourceLock(SERVER) // Use this lock on other tests if they get split later
 	public void test() throws Exception {
-		// Create server jar from the latest compilation
-		Path target = Paths.get("target");
-		Path classes = target.resolve("classes");
-		Path agentJarPath = target.resolve("instrumentation-server-SNAPSHOT.jar");
-		Files.deleteIfExists(agentJarPath);
-		pack(classes, agentJarPath);
 		Process start = null;
 		try {
 			// Start the java-agent on the 'Runner' example application
@@ -44,9 +59,15 @@ public class DemoTest implements ClientListener {
 			// Setup our local client
 			Thread.sleep(1500);
 			Client client = new Client();
-			client.setListener(this);
-			client.startInputLoop();
-			// Send some requests
+			client.connect();
+
+			client.sendBlocking(new PingCommand(), reply -> {
+				System.err.println("PONG!");
+				assertTrue(reply instanceof PongCommand);
+			}).get();
+
+			// TODO: Re-implement
+			/*
 			client.requestProperties();
 			Thread.sleep(500);
 			client.requestSetProperty("key", "new_value");
@@ -60,6 +81,7 @@ public class DemoTest implements ClientListener {
 			Thread.sleep(1000);
 			client.requestLoadedClasses();
 			Thread.sleep(3000);
+			 */
 		} finally {
 			// Kill the remote process and delete the agent jar
 			if (start != null)
@@ -69,7 +91,7 @@ public class DemoTest implements ClientListener {
 		}
 	}
 
-	public static void pack(Path source, Path target) throws IOException {
+	private static void pack(Path source, Path target) throws IOException {
 		String agentClassName = Agent.class.getName();
 		Manifest manifest = new Manifest();
 		manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
@@ -91,20 +113,5 @@ public class DemoTest implements ClientListener {
 						}
 					});
 		}
-	}
-
-	@Override
-	public void onReceiveProperties(Map<String, String> properties) {
-		System.out.println("[Demo] Properties[" + properties.size() + "]");
-	}
-
-	@Override
-	public void onReceiveLoadedClasses(String[] classNames) {
-		System.out.println("[Demo] Loaded classes: " + classNames.length);
-	}
-
-	@Override
-	public void onReceiveStaticFieldValue(String owner, String name, String desc, String valueText) {
-		System.out.println("[Demo] Static field " + owner + "." + name + " = " + valueText);
 	}
 }

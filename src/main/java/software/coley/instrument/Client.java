@@ -1,133 +1,220 @@
 package software.coley.instrument;
 
-import software.coley.instrument.command.impl.*;
-import software.coley.instrument.link.ClientSocketCommunicationsLink;
-import software.coley.instrument.link.CommunicationsLink;
+import software.coley.instrument.command.AbstractCommand;
+import software.coley.instrument.command.CommandConstants;
+import software.coley.instrument.command.CommandFactory;
+import software.coley.instrument.util.Buffers;
+import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.util.concurrent.*;
+import java.util.function.Consumer;
 
 /**
- * Client which talks to a server over {@link CommunicationsLink} in order to do remote instrumentation work.
+ * Client which talks to a server in order to do remote instrumentation work.
  *
  * @author Matt Coley
  */
-public class Client extends Entity<CommunicationsLink<Client>> {
-	private final CommunicationsLink<Client> link;
-	private ClientListener listener;
+public class Client {
+	private final ExecutorService service = Executors.newSingleThreadExecutor();
+	private final ByteBuffer headerBuffer = ByteBuffer.allocate(CommandConstants.HEADER_SIZE);
+	private final AsynchronousSocketChannel clientChannel;
+	private final InetSocketAddress hostAddress;
 
 	/**
-	 * Client on localhost for the {@link Server#DEFAULT_PORT default port}.
+	 * New localhost client on default port.
 	 *
 	 * @throws IOException
-	 * 		When localhost cannot be connected to over the default port.
+	 * 		When the {@link AsynchronousSocketChannel} cannot be opened.
 	 */
 	public Client() throws IOException {
-		this(new ClientSocketCommunicationsLink("localhost", Server.DEFAULT_PORT));
+		this("localhost", Server.DEFAULT_PORT);
 	}
 
 	/**
-	 * Client over the given link.
+	 * New localhost client on the given port.
 	 *
-	 * @param link
-	 * 		Communications link.
-	 */
-	public Client(CommunicationsLink<Client> link) {
-		this.link = link;
-	}
-
-	@Override
-	public CommunicationsLink<Client> getLink() {
-		return link;
-	}
-
-	/**
-	 * @throws IOException
-	 * 		When the request cannot be sent.
-	 */
-	public void requestProperties() throws IOException {
-		getLink().send(new PropertiesCommand());
-	}
-
-	/**
-	 * @param key
-	 * 		Property key.
-	 * @param value
-	 * 		Property value.
+	 * @param port
+	 * 		Port to connect on.
 	 *
 	 * @throws IOException
-	 * 		When the request cannot be sent.
+	 * 		When the {@link AsynchronousSocketChannel} cannot be opened.
 	 */
-	public void requestSetProperty(String key, String value) throws IOException {
-		SetPropertyCommand command = new SetPropertyCommand();
-		command.setKey(key);
-		command.setValue(value);
-		getLink().send(command);
+	public Client(int port) throws IOException {
+		this("localhost", port);
 	}
 
 	/**
-	 * @param owner
-	 * 		Declaring class of field.
-	 * @param name
-	 * 		Field name.
-	 * @param desc
-	 * 		Field desc.
-	 * @param value
-	 * 		Value to set. See {@link SetFieldCommand} for supported types.
+	 * New client on for the ip on the default port.
+	 *
+	 * @param ip
+	 * 		Server IP to connect to.
 	 *
 	 * @throws IOException
-	 * 		When the request cannot be sent.
+	 * 		When the {@link AsynchronousSocketChannel} cannot be opened.
 	 */
-	public void requestSetStaticField(String owner, String name, String desc, String value) throws IOException {
-		SetFieldCommand command = new SetFieldCommand();
-		command.setOwner(owner);
-		command.setName(name);
-		command.setDesc(desc);
-		command.setValueText(value);
-		getLink().send(command);
+	public Client(String ip) throws IOException {
+		this(ip, Server.DEFAULT_PORT);
 	}
 
 	/**
-	 * @param owner
-	 * 		Declaring class of field.
-	 * @param name
-	 * 		Field name.
-	 * @param desc
-	 * 		Field desc.
+	 * @param ip
+	 * 		Server IP to connect to.
+	 * @param port
+	 * 		Port to connect on.
 	 *
 	 * @throws IOException
-	 * 		When the request cannot be sent.
+	 * 		When the {@link AsynchronousSocketChannel} cannot be opened.
 	 */
-	public void requestGetStaticField(String owner, String name, String desc) throws IOException {
-		GetFieldCommand command = new GetFieldCommand();
-		command.setOwner(owner);
-		command.setName(name);
-		command.setDesc(desc);
-		command.setValueText("");
-		getLink().send(command);
+	public Client(String ip, int port) throws IOException {
+		this.clientChannel = AsynchronousSocketChannel.open();
+		this.hostAddress = new InetSocketAddress(ip, port);
 	}
 
 	/**
-	 * @throws IOException
-	 * 		When the request cannot be sent.
+	 * Connects to the target {@link #hostAddress}.
+	 *
+	 * @return Connection future.
 	 */
-	public void requestLoadedClasses() throws IOException {
-		getLink().send(new LoadedClassesCommand());
+	public Future<Void> connect() {
+		return clientChannel.connect(hostAddress);
 	}
 
 	/**
-	 * @return Current listener.
+	 * Close connection.
 	 */
-	public ClientListener getListener() {
-		return listener;
+	public void close() {
+		try {
+			if (clientChannel.isOpen())
+				clientChannel.close();
+		} catch (IOException ex) {
+			Logger.error("Failed to close client connection to server: " + ex);
+		}
 	}
 
 	/**
-	 * @param listener
-	 * 		New listener.
+	 * @param command
+	 * 		Command to handle.
 	 */
-	public void setListener(ClientListener listener) {
-		this.listener = listener;
+	private void handleCommand(AbstractCommand command) {
+		// TODO: handle
 	}
 
+	/**
+	 * @param command
+	 * 		Command to send.
+	 * @param replyHandler
+	 * 		Handler for replied packets.
+	 *
+	 * @return Number of replies.
+	 */
+	public Future<Integer> sendAsync(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
+		return service.submit(() -> sendBlocking(command, replyHandler).get());
+	}
 
+	/**
+	 * @param command
+	 * 		Command to send.
+	 * @param replyHandler
+	 * 		Handler for replied packets.
+	 *
+	 * @return Number of replies.
+	 */
+	public Future<Integer> sendBlocking(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
+		byte[] data = command.generate();
+		Logger.debug("Client sending command: " + command.getClass().getSimpleName() +
+				"[key=" + command.key() + ", size=" + data.length + "]");
+		// Wrap bytes of command, send to channel.
+		try {
+			if (clientChannel.isOpen()) {
+				Buffers.writeTo(clientChannel, data)
+						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			} else {
+				Logger.error("Client cannot write command, channel is closed");
+				return CompletableFuture.completedFuture(0);
+			}
+		} catch (InterruptedException e) {
+			Logger.error("Client interrupted while writing command data");
+			close();
+			return CompletableFuture.completedFuture(0);
+		} catch (ExecutionException e) {
+			Logger.error("Client encountered error writing command data into buffer");
+			close();
+			return CompletableFuture.completedFuture(0);
+		} catch (TimeoutException e) {
+			Logger.error("Client timed out writing command data");
+			close();
+			return CompletableFuture.completedFuture(0);
+		}
+		// Handle reply from channel.
+		int replies = 0;
+		while (true) {
+			// Read response into buffer
+			try {
+				Logger.debug("Client awaiting server response...");
+				Buffers.readFrom(clientChannel, headerBuffer)
+						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+				replies++;
+			} catch (InterruptedException e) {
+				Logger.error("Client interrupted while reading command reply");
+				close();
+				return CompletableFuture.completedFuture(replies);
+			} catch (ExecutionException e) {
+				Logger.error("Client encountered error reading command reply into buffer");
+				close();
+				return CompletableFuture.completedFuture(replies);
+			} catch (TimeoutException e) {
+				Logger.error("Client timed out reading command reply");
+				close();
+				return CompletableFuture.completedFuture(replies);
+			}
+			// Read header from headerBuffer
+			byte commandId = headerBuffer.get();
+			int commandLength = headerBuffer.getInt();
+			// Check if reply was 'DONE'
+			if (commandId == CommandConstants.HEADER_PART_DONE && commandLength == -1) {
+				Logger.debug("Client received 'DONE' from server");
+				break;
+			}
+			// Parse and handle command
+			AbstractCommand reply = CommandFactory.create(commandId);
+			if (reply == null) {
+				Logger.error("Client read reply from server, unknown command: " + commandId);
+			} else {
+				Logger.debug("Client read from server, command: " +
+						reply.getClass().getSimpleName() + "[" + commandId + "]");
+				// Allocate new headerBuffer and read into it the remaining data
+				if (commandLength > 0) {
+					try {
+						ByteBuffer commandDataBuffer = ByteBuffer.allocate(commandLength);
+						Buffers.readFrom(clientChannel, commandDataBuffer)
+								.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+						reply.read(commandDataBuffer);
+					} catch (InterruptedException e) {
+						Logger.error("Client interrupted while reading remaining command data");
+						close();
+						return CompletableFuture.completedFuture(replies);
+					} catch (ExecutionException ex) {
+						Logger.error("Client encountered error reading remaining command data into headerBuffer");
+						close();
+						return CompletableFuture.completedFuture(replies);
+					} catch (TimeoutException ex) {
+						Logger.error("Client timed out reading remaining command data");
+						close();
+						return CompletableFuture.completedFuture(replies);
+					} catch (IOException ex) {
+						Logger.error("Client failed to parse command data from command");
+						close();
+						return CompletableFuture.completedFuture(replies);
+					}
+				}
+				// Handle parsed command data.
+				replyHandler.accept(reply);
+			}
+		}
+		return CompletableFuture.completedFuture(replies);
+	}
 }

@@ -11,8 +11,7 @@ public class Logger {
 	public static final int WARN = 1;
 	public static final int INFO = 2;
 	public static final int DEBUG = 3;
-	public static boolean isServer = true;
-	public static int level = DEBUG;
+	public static int level = NONE;
 
 	/**
 	 * @param message
@@ -51,9 +50,6 @@ public class Logger {
 	}
 
 	private static String fmt(String message) {
-		if (isServer)
-			return "[Server] " + message;
-		else
-			return "[Client] " + message;
+		return message;
 	}
 }

@@ -5,6 +5,7 @@ import software.coley.instrument.Server;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * Command outline.
@@ -21,28 +22,6 @@ public abstract class AbstractCommand implements CommandConstants {
 	}
 
 	/**
-	 * Called after {@link #read(DataInputStream)}.
-	 * Used on the client side to handle this packet when it is received from a server.
-	 *
-	 * @param client
-	 * 		The client instance.
-	 */
-	public abstract void handleClient(Client client);
-
-	/**
-	 * Called after {@link #read(DataInputStream)}.
-	 * Used on the server side to handle this packet when it is received from a client.
-	 *
-	 * @param server
-	 * 		The server instance.
-	 *
-	 * @throws IOException
-	 * 		Most commands attempt to send automatic replies to clients.
-	 * 		Thrown when that operation fails.
-	 */
-	public abstract void handleServer(Server server) throws IOException;
-
-	/**
 	 * @return Command identifier.
 	 */
 	public int key() {
@@ -55,13 +34,13 @@ public abstract class AbstractCommand implements CommandConstants {
 	public abstract byte[] generate();
 
 	/**
-	 * @param in
-	 * 		Input stream to read from.
+	 * @param buffer
+	 * 		Buffer to read from.
 	 *
 	 * @throws IOException
-	 * 		When the stream cannot be read from.
+	 * 		When the buffer cannot be read from.
 	 */
-	public void read(DataInputStream in) throws IOException {
+	public void read(ByteBuffer buffer) throws IOException {
 		// no-op by default
 	}
 

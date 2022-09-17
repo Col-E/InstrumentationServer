@@ -1,7 +1,5 @@
 package software.coley.instrument.command.impl;
 
-import software.coley.instrument.Client;
-import software.coley.instrument.Server;
 import software.coley.instrument.command.AbstractCommand;
 
 /**
@@ -10,22 +8,10 @@ import software.coley.instrument.command.AbstractCommand;
  * @author Matt Coley
  */
 public class ShutdownCommand extends AbstractCommand {
-	private static final byte[] DATA = {ID_COMMON_SHUTDOWN};
+	private static final byte[] DATA = {ID_COMMON_SHUTDOWN, 0, 0, 0, 0};
 
 	public ShutdownCommand() {
 		super(ID_COMMON_SHUTDOWN);
-	}
-
-	@Override
-	public void handleClient(Client client) {
-		// Server is closing, we should too.
-		client.stopInputLoop();
-	}
-
-	@Override
-	public void handleServer(Server server) {
-		// Client requested we stop.
-		server.stopInputLoop();
 	}
 
 	@Override
