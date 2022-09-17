@@ -1,10 +1,5 @@
 package software.coley.instrument.command;
 
-import software.coley.instrument.Client;
-import software.coley.instrument.Server;
-
-import java.io.DataInputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -36,11 +31,8 @@ public abstract class AbstractCommand implements CommandConstants {
 	/**
 	 * @param buffer
 	 * 		Buffer to read from.
-	 *
-	 * @throws IOException
-	 * 		When the buffer cannot be read from.
 	 */
-	public void read(ByteBuffer buffer) throws IOException {
+	public void read(ByteBuffer buffer) {
 		// no-op by default
 	}
 

@@ -205,10 +205,6 @@ public class Client {
 						Logger.error("Client timed out reading remaining command data");
 						close();
 						return CompletableFuture.completedFuture(replies);
-					} catch (IOException ex) {
-						Logger.error("Client failed to parse command data from command");
-						close();
-						return CompletableFuture.completedFuture(replies);
 					}
 				}
 				// Handle parsed command data.

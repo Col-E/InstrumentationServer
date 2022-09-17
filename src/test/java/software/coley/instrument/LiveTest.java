@@ -2,11 +2,12 @@ package software.coley.instrument;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
-import software.coley.instrument.command.impl.PingCommand;
-import software.coley.instrument.command.impl.PongCommand;
+import software.coley.instrument.command.impl.GetFieldCommand;
+import software.coley.instrument.command.impl.LoadedClassesCommand;
+import software.coley.instrument.command.impl.SetFieldCommand;
+import software.coley.instrument.command.impl.SetPropertyCommand;
+import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
@@ -18,13 +19,12 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Demo setup using the {@code Runner} example class.
  */
-@Execution(ExecutionMode.CONCURRENT)
 public class LiveTest {
 	private static final String SERVER = "Server";
 	private static Path agentJarPath;
@@ -61,27 +61,35 @@ public class LiveTest {
 			Client client = new Client();
 			client.connect();
 
-			client.sendBlocking(new PingCommand(), reply -> {
-				System.err.println("PONG!");
-				assertTrue(reply instanceof PongCommand);
-			}).get();
-
-			// TODO: Re-implement
-			/*
-			client.requestProperties();
-			Thread.sleep(500);
-			client.requestSetProperty("key", "new_value");
+			// Update one key
+			client.sendBlocking(new SetPropertyCommand("key", "new_value"), reply -> {
+				System.out.println("> Key updated");
+			});
 			Thread.sleep(2000);
-			client.requestSetProperty("alt-key", "alt_key_value");
-			Thread.sleep(1000);
-			client.requestGetStaticField("Runner", "key", DescUtil.STRING_DESC);
-			client.requestGetStaticField(ClassLoader.class.getName(), "scl", DescUtil.getDescriptor(ClassLoader.class));
-			Thread.sleep(500);
-			client.requestSetStaticField("Runner", "key", DescUtil.STRING_DESC, "alt-key");
-			Thread.sleep(1000);
-			client.requestLoadedClasses();
-			Thread.sleep(3000);
-			 */
+
+			// Update another
+			client.sendBlocking(new SetPropertyCommand("alt-key", "alt_key_value"), reply -> {
+				System.out.println("> Alt-key updated");
+			});
+			Thread.sleep(2000);
+
+			// Request static field value
+			client.sendBlocking(new GetFieldCommand("Runner", "key", DescUtil.STRING_DESC), reply -> {
+				GetFieldCommand getFieldCommand = (GetFieldCommand) reply;
+				assertEquals("key", getFieldCommand.getValueText());
+			});
+			Thread.sleep(2000);
+
+			// Set static field value to different value
+			client.sendBlocking(new SetFieldCommand("Runner", "key", DescUtil.STRING_DESC, "alt-key"), null);
+			Thread.sleep(2000);
+
+			// Request loaded class names
+			client.sendBlocking(new LoadedClassesCommand(), reply -> {
+				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) reply;
+				System.out.println("There are " + loadedClassesCommand.getClassNames().length + " classes");
+			});
+			Thread.sleep(2000);
 		} finally {
 			// Kill the remote process and delete the agent jar
 			if (start != null)

@@ -3,7 +3,7 @@ package software.coley.instrument;
 import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.command.CommandConstants;
 import software.coley.instrument.command.CommandFactory;
-import software.coley.instrument.command.impl.PongCommand;
+import software.coley.instrument.command.impl.*;
 import software.coley.instrument.util.Buffers;
 import software.coley.instrument.util.Logger;
 
@@ -136,9 +136,6 @@ public class Server {
 					} catch (TimeoutException ex) {
 						Logger.error("Server timed out reading remaining command data");
 						return;
-					} catch (IOException ex) {
-						Logger.error("Server failed to parse command data from command: " + ex);
-						return;
 					}
 				}
 				// Handle parsed command data.
@@ -186,13 +183,59 @@ public class Server {
 	private void handleCommand(AbstractCommand command, AsynchronousSocketChannel clientChannel)
 			throws ExecutionException, InterruptedException, TimeoutException {
 		switch (command.key()) {
-			case CommandConstants.ID_COMMON_PING:
+			case CommandConstants.ID_COMMON_PING: {
+				// Send back pong
+				Logger.debug("Server replying PONG to PING");
 				Buffers.writeTo(clientChannel, new PongCommand().generate())
 						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 				break;
-			case CommandConstants.ID_COMMON_SHUTDOWN:
+			}
+			case CommandConstants.ID_COMMON_SHUTDOWN: {
+				// Close server
 				close();
 				break;
+			}
+			case CommandConstants.ID_CL_REQUEST_PROPERTIES: {
+				// Send back populated command
+				Logger.debug("Server replying with populated system properties");
+				PropertiesCommand propertiesCommand = (PropertiesCommand) command;
+				propertiesCommand.populateValue();
+				Buffers.writeTo(clientChannel, propertiesCommand.generate())
+						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+				break;
+			}
+			case CommandConstants.ID_CL_SET_PROPERTY: {
+				// Run the operation
+				SetPropertyCommand setPropertyCommand = (SetPropertyCommand) command;
+				Logger.debug("Server applying property: " + setPropertyCommand.getKey());
+				setPropertyCommand.assignValue();
+				break;
+			}
+			case CommandConstants.ID_CL_SET_FIELD: {
+				// Run the operation
+				SetFieldCommand setFieldCommand = (SetFieldCommand) command;
+				Logger.debug("Server applying field: " + setFieldCommand.getOwner() + "." + setFieldCommand.getName());
+				setFieldCommand.assignValue();
+				break;
+			}
+			case CommandConstants.ID_CL_GET_FIELD: {
+				// Send back populated command
+				GetFieldCommand getFieldCommand = (GetFieldCommand) command;
+				Logger.debug("Server getting field: " + getFieldCommand.getOwner() + "." + getFieldCommand.getName());
+				getFieldCommand.lookupValue();
+				Buffers.writeTo(clientChannel, getFieldCommand.generate())
+						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+				break;
+			}
+			case CommandConstants.ID_CL_LOADED_CLASSES: {
+				// Send back populated command
+				Logger.debug("Server replying with populated class names");
+				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) command;
+				loadedClassesCommand.lookupNames(instrumentation);
+				Buffers.writeTo(clientChannel, loadedClassesCommand.generate())
+						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+				break;
+			}
 		}
 	}
 
@@ -201,6 +244,7 @@ public class Server {
 	 */
 	public void close() {
 		try {
+			Logger.debug("Server shutting down");
 			for (AsynchronousSocketChannel client : clients) {
 				closeClientChannel(client);
 			}

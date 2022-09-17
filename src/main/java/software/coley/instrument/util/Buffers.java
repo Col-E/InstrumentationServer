@@ -11,6 +11,18 @@ import java.util.concurrent.CompletableFuture;
  * @author Matt Coley
  */
 public class Buffers {
+	public static String getString(ByteBuffer buffer) {
+		int length = buffer.getInt();
+		byte[] data = new byte[length];
+		buffer.get(data);
+		return new String(data);
+	}
+
+	public static void putString(ByteBuffer buffer, String string) {
+		buffer.putInt(string.length());
+		buffer.put(string.getBytes());
+	}
+
 	/**
 	 * @param channel
 	 * 		Channel to read from.
