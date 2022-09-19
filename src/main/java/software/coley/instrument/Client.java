@@ -77,10 +77,16 @@ public class Client {
 	/**
 	 * Connects to the target {@link #hostAddress}.
 	 *
-	 * @return Connection future.
+	 * @return {@code true} on successful connect.
 	 */
-	public Future<Void> connect() {
-		return clientChannel.connect(hostAddress);
+	public boolean connect() {
+		try {
+			clientChannel.connect(hostAddress).get();
+			return true;
+		} catch (Exception ex) {
+			Logger.error("Failed to connect to host: " + hostAddress + " - " + ex);
+			return false;
+		}
 	}
 
 	/**
@@ -111,8 +117,8 @@ public class Client {
 	 *
 	 * @return Number of replies.
 	 */
-	public Future<Integer> sendAsync(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
-		return service.submit(() -> sendBlocking(command, replyHandler).get());
+	public CompletableFuture<Integer> sendAsync(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
+		return CompletableFuture.supplyAsync(() -> send(command, replyHandler), service);
 	}
 
 	/**
@@ -123,54 +129,28 @@ public class Client {
 	 *
 	 * @return Number of replies.
 	 */
-	public Future<Integer> sendBlocking(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
+	public int send(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
+		// Sanity check, channel must be open to send command.
+		if (!clientChannel.isOpen()) {
+			Logger.error("Client cannot write command, channel is closed");
+			return 0;
+		}
+		// Build command data.
 		byte[] data = command.generate();
 		Logger.debug("Client sending command: " + command.getClass().getSimpleName() +
 				"[key=" + command.key() + ", size=" + data.length + "]");
 		// Wrap bytes of command, send to channel.
-		try {
-			if (clientChannel.isOpen()) {
-				Buffers.writeTo(clientChannel, data)
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-			} else {
-				Logger.error("Client cannot write command, channel is closed");
-				return CompletableFuture.completedFuture(0);
-			}
-		} catch (InterruptedException e) {
-			Logger.error("Client interrupted while writing command data");
-			close();
-			return CompletableFuture.completedFuture(0);
-		} catch (ExecutionException e) {
-			Logger.error("Client encountered error writing command data into buffer");
-			close();
-			return CompletableFuture.completedFuture(0);
-		} catch (TimeoutException e) {
-			Logger.error("Client timed out writing command data");
-			close();
-			return CompletableFuture.completedFuture(0);
-		}
+		if (!blockingAction(Buffers.writeTo(clientChannel, data), "writing command data"))
+			return 0;
 		// Handle reply from channel.
 		int replies = 0;
 		while (true) {
 			// Read response into buffer
-			try {
-				Logger.debug("Client awaiting server response...");
-				Buffers.readFrom(clientChannel, headerBuffer)
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			Logger.debug("Client awaiting server response...");
+			if (blockingAction(Buffers.readFrom(clientChannel, headerBuffer), "reading command reply"))
 				replies++;
-			} catch (InterruptedException e) {
-				Logger.error("Client interrupted while reading command reply");
-				close();
-				return CompletableFuture.completedFuture(replies);
-			} catch (ExecutionException e) {
-				Logger.error("Client encountered error reading command reply into buffer");
-				close();
-				return CompletableFuture.completedFuture(replies);
-			} catch (TimeoutException e) {
-				Logger.error("Client timed out reading command reply");
-				close();
-				return CompletableFuture.completedFuture(replies);
-			}
+			else
+				return replies;
 			// Read header from headerBuffer
 			byte commandId = headerBuffer.get();
 			int commandLength = headerBuffer.getInt();
@@ -188,29 +168,48 @@ public class Client {
 						reply.getClass().getSimpleName() + "[" + commandId + "]");
 				// Allocate new headerBuffer and read into it the remaining data
 				if (commandLength > 0) {
-					try {
-						ByteBuffer commandDataBuffer = ByteBuffer.allocate(commandLength);
-						Buffers.readFrom(clientChannel, commandDataBuffer)
-								.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+					ByteBuffer commandDataBuffer = ByteBuffer.allocate(commandLength);
+					if (blockingAction(Buffers.readFrom(clientChannel, commandDataBuffer), "reading remaining command data")) {
 						reply.read(commandDataBuffer);
-					} catch (InterruptedException e) {
-						Logger.error("Client interrupted while reading remaining command data");
-						close();
-						return CompletableFuture.completedFuture(replies);
-					} catch (ExecutionException ex) {
-						Logger.error("Client encountered error reading remaining command data into headerBuffer");
-						close();
-						return CompletableFuture.completedFuture(replies);
-					} catch (TimeoutException ex) {
-						Logger.error("Client timed out reading remaining command data");
-						close();
-						return CompletableFuture.completedFuture(replies);
+					} else {
+						return replies;
 					}
 				}
 				// Handle parsed command data.
 				replyHandler.accept(reply);
 			}
 		}
-		return CompletableFuture.completedFuture(replies);
+		return replies;
+	}
+
+	/**
+	 * Wraps the same {@code try-catch} logic to reduce duplicate bloat in {@link #send(AbstractCommand, Consumer)}.
+	 *
+	 * @param action
+	 * 		Action of {@link Buffers#readFrom(AsynchronousSocketChannel, ByteBuffer)} or
+	 *        {@link Buffers#writeTo(AsynchronousSocketChannel, ByteBuffer)}
+	 * @param title
+	 * 		Title of action to emit in error logging.
+	 *
+	 * @return {@code true} on success.
+	 * {@code false} on failure.
+	 */
+	private boolean blockingAction(Future<?> action, String title) {
+		try {
+			action.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			return true;
+		} catch (InterruptedException e) {
+			Logger.error("Client interrupted while " + title);
+			close();
+			return false;
+		} catch (ExecutionException e) {
+			Logger.error("Client encountered error " + title + " into buffer");
+			close();
+			return false;
+		} catch (TimeoutException e) {
+			Logger.error("Client timed out " + title);
+			close();
+			return false;
+		}
 	}
 }

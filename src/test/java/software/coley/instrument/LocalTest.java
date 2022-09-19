@@ -27,23 +27,23 @@ public class LocalTest {
 		server.acceptAsync(channel -> System.out.println("Connected!"));
 
 		Client client = new Client(port);
-		client.connect();
+		assertTrue(client.connect());
 
 		// Ping-Pong
 		for (int i = 0; i < 20; i++) {
-			client.sendBlocking(new PingCommand(), reply -> {
+			client.send(new PingCommand(), reply -> {
 				assertTrue(reply instanceof PongCommand);
-			}).get();
+			});
 		}
 
 		// Properties lookup
-		client.sendBlocking(new PropertiesCommand(), reply -> {
+		client.send(new PropertiesCommand(), reply -> {
 			Map<String, String> results = ((PropertiesCommand) reply).mapValue();
 			assertNotNull(results);
 		});
 
 		// Field lookup
-		client.sendBlocking(new GetFieldCommand("java/lang/Integer", "MAX_VALUE", "I"), reply -> {
+		client.send(new GetFieldCommand("java/lang/Integer", "MAX_VALUE", "I"), reply -> {
 			assertEquals(String.valueOf(Integer.MAX_VALUE), ((GetFieldCommand) reply).getValueText());
 		});
 	}

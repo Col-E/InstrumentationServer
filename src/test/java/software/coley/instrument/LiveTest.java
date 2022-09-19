@@ -19,8 +19,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Demo setup using the {@code Runner} example class.
@@ -59,38 +58,38 @@ public class LiveTest {
 			// Setup our local client
 			Thread.sleep(1500);
 			Client client = new Client();
-			client.connect();
+			assertTrue(client.connect());
 
 			// Update one key
-			client.sendBlocking(new SetPropertyCommand("key", "new_value"), reply -> {
+			client.send(new SetPropertyCommand("key", "new_value"), reply -> {
 				System.out.println("> Key updated");
-			}).get();
+			});
 
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
 			// Update another
-			client.sendBlocking(new SetPropertyCommand("alt-key", "alt_key_value"), reply -> {
+			client.send(new SetPropertyCommand("alt-key", "alt_key_value"), reply -> {
 				System.out.println("> Alt-key updated");
-			}).get();
+			});
 
 			// Request static field value
-			client.sendBlocking(new GetFieldCommand("Runner", "key", DescUtil.STRING_DESC), reply -> {
+			client.send(new GetFieldCommand("Runner", "key", DescUtil.STRING_DESC), reply -> {
 				GetFieldCommand getFieldCommand = (GetFieldCommand) reply;
 				assertEquals("key", getFieldCommand.getValueText());
-			}).get();
+			});
 
 			// Set static field value to different value
-			client.sendBlocking(new SetFieldCommand("Runner", "key", DescUtil.STRING_DESC, "alt-key"), null).get();
+			client.send(new SetFieldCommand("Runner", "key", DescUtil.STRING_DESC, "alt-key"), null);
 
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
 			// Request loaded class names
-			client.sendBlocking(new LoadedClassesCommand(), reply -> {
+			client.send(new LoadedClassesCommand(), reply -> {
 				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) reply;
 				System.out.println("There are " + loadedClassesCommand.getClassNames().length + " classes");
-			}).get();
+			});
 		} finally {
 			// Kill the remote process and delete the agent jar
 			if (start != null)
