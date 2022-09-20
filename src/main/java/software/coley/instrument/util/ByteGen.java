@@ -83,8 +83,12 @@ public class ByteGen {
 	 */
 	public ByteGen appendByteArray(byte[] data) {
 		try {
-			stream.writeInt(data.length);
-			stream.write(data);
+			if (data == null) {
+				stream.writeInt(0);
+			} else {
+				stream.writeInt(data.length);
+				stream.write(data);
+			}
 			return this;
 		} catch (IOException ex) {
 			throw new IllegalStateException(ex);

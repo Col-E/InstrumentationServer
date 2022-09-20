@@ -9,6 +9,7 @@ import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.lang.instrument.UnmodifiableClassException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousServerSocketChannel;
@@ -30,7 +31,7 @@ public class Server {
 	public static final int DEFAULT_PORT = 25252;
 	private final List<AsynchronousSocketChannel> clients = new ArrayList<>();
 	private final AsynchronousServerSocketChannel serverChannel;
-	private final Instrumentation instrumentation;
+	private final InstrumentationHelper instrumentationHelper;
 
 	/**
 	 * @param instrumentation
@@ -42,7 +43,7 @@ public class Server {
 	 * 		When the {@link AsynchronousServerSocketChannel} cannot be opened.
 	 */
 	public Server(Instrumentation instrumentation, int port) throws IOException {
-		this.instrumentation = instrumentation;
+		instrumentationHelper = new InstrumentationHelper(instrumentation);
 		serverChannel = AsynchronousServerSocketChannel.open();
 		serverChannel.bind(new InetSocketAddress("localhost", port));
 	}
@@ -231,9 +232,33 @@ public class Server {
 				// Send back populated command
 				Logger.debug("Server replying with populated class names");
 				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) command;
-				loadedClassesCommand.lookupNames(instrumentation);
+				// Only send 'new' classes to reduce sending duplicate data to client
+				loadedClassesCommand.setClassNames(instrumentationHelper.getNewClassNames());
 				Buffers.writeTo(clientChannel, loadedClassesCommand.generate())
 						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+				break;
+			}
+			case CommandConstants.ID_CL_GET_CLASS: {
+				// Send back populated command
+				Logger.debug("Server replying to class bytecode lookup");
+				GetClassCommand getClassCommand = (GetClassCommand) command;
+				getClassCommand.setCode(instrumentationHelper.getClassBytecode(getClassCommand.getName()));
+				Buffers.writeTo(clientChannel, getClassCommand.generate())
+						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+				break;
+			}
+			case CommandConstants.ID_CL_REDEFINE_CLASS: {
+				// Run the operation
+				RedefineClassCommand redefineClassCommand = (RedefineClassCommand) command;
+				Logger.debug("Server redefining class: " + redefineClassCommand.getName());
+				try {
+					instrumentationHelper.redefineClass(redefineClassCommand.getName(), redefineClassCommand.getCode());
+				} catch (UnmodifiableClassException e) {
+					Logger.debug("Server cannot redefine class: " + redefineClassCommand.getName());
+				} catch (ClassNotFoundException ex) {
+					Logger.debug("Server cannot find class: " + redefineClassCommand.getName() + " - " + ex);
+					ex.printStackTrace();
+				}
 				break;
 			}
 		}

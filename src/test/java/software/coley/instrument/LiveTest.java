@@ -3,12 +3,10 @@ package software.coley.instrument;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
-import software.coley.instrument.command.impl.GetFieldCommand;
-import software.coley.instrument.command.impl.LoadedClassesCommand;
-import software.coley.instrument.command.impl.SetFieldCommand;
-import software.coley.instrument.command.impl.SetPropertyCommand;
+import software.coley.instrument.command.impl.*;
 import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
+import software.coley.instrument.util.Streams;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -85,10 +83,16 @@ public class LiveTest {
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
+			byte[] code = Files.readAllBytes(Paths.get("src/test/resources/Runner-instrumented.class"));
+			client.send(new RedefineClassCommand("Runner", code), null);
+
+			// Let runner app run to show the print output is different
+			Thread.sleep(2000);
+
 			// Request loaded class names
 			client.send(new LoadedClassesCommand(), reply -> {
 				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) reply;
-				System.out.println("There are " + loadedClassesCommand.getClassNames().length + " classes");
+				System.out.println("There are " + loadedClassesCommand.getClassNames().size() + " classes");
 			});
 		} finally {
 			// Kill the remote process and delete the agent jar

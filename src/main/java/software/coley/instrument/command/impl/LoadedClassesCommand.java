@@ -7,6 +7,9 @@ import software.coley.instrument.util.DescUtil;
 
 import java.lang.instrument.Instrumentation;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Handles requesting classes.
@@ -14,30 +17,26 @@ import java.nio.ByteBuffer;
  * @author Matt Coley
  */
 public class LoadedClassesCommand extends AbstractCommand {
-	private String[] classNames = new String[0];
+	private Collection<String> classNames = Collections.emptyList();
 
 	public LoadedClassesCommand() {
 		super(ID_CL_LOADED_CLASSES);
 	}
 
-	public String[] getClassNames() {
+	public Collection<String> getClassNames() {
 		return classNames;
 	}
 
-	public String[] lookupNames(Instrumentation instrumentation) {
-		Class<?>[] allLoadedClasses = instrumentation.getAllLoadedClasses();
-		classNames = new String[allLoadedClasses.length];
-		for (int i = 0; i < classNames.length; i++)
-			classNames[i] = DescUtil.getDescriptor(allLoadedClasses[i]);
-		return classNames;
+	public void setClassNames(Collection<String> classNames) {
+		this.classNames = classNames;
 	}
 
 	@Override
 	public void read(ByteBuffer in) {
 		int count = in.getInt();
-		classNames = new String[count];
+		classNames = new ArrayList<>();
 		for (int i = 0; i < count; i++)
-			classNames[i] = Buffers.getString(in);
+			classNames.add(Buffers.getString(in));
 	}
 
 	@Override
@@ -45,7 +44,8 @@ public class LoadedClassesCommand extends AbstractCommand {
 		if (classNames == null)
 			throw new IllegalStateException("Class names not set before usage!");
 		ByteGen gen = new ByteGen()
-				.appendInt(classNames.length);
+				.appendInt(classNames.size());
+		// TODO: should find a way to optimize by using common parents or zip compression
 		for (String className : classNames)
 			gen.appendString(className);
 		return gen.build((byte) key());
@@ -55,6 +55,6 @@ public class LoadedClassesCommand extends AbstractCommand {
 	public String toString() {
 		if (classNames == null)
 			return "LoadedClassesCommand[empty]";
-		return "LoadedClassesCommand[" + classNames.length + "]";
+		return "LoadedClassesCommand[" + classNames.size() + "]";
 	}
 }

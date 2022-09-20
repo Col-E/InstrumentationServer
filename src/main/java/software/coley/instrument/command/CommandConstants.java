@@ -16,6 +16,8 @@ public interface CommandConstants {
 	int ID_CL_SET_FIELD = 102;
 	int ID_CL_GET_FIELD = 103;
 	int ID_CL_LOADED_CLASSES = 110;
+	int ID_CL_GET_CLASS = 111;
+	int ID_CL_REDEFINE_CLASS = 112;
 	//
 	int HEADER_SIZE = 5;
 	byte HEADER_PART_DONE = -1;

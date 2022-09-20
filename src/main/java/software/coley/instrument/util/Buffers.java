@@ -29,6 +29,23 @@ public class Buffers {
 	}
 
 	/**
+	 * @param buffer
+	 * 		Buffer to read from.
+	 *
+	 * @return byte array in buffer.
+	 *
+	 * @see ByteGen#appendByteArray(byte[]) data format.
+	 */
+	public static byte[] getArray(ByteBuffer buffer) {
+		int length = buffer.getInt();
+		if (length == 0)
+			return new byte[0];
+		byte[] data = new byte[length];
+		buffer.get(data);
+		return data;
+	}
+
+	/**
 	 * @param channel
 	 * 		Channel to read from.
 	 * @param buffer
