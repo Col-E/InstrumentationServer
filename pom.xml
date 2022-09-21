@@ -6,7 +6,7 @@
 
     <groupId>software.coley</groupId>
     <artifactId>instrumentation-server</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -48,6 +48,28 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>dev.grmek.maven</groupId>
+                <artifactId>build-config-plugin</artifactId>
+                <version>1.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <packageName>software.coley.instrument</packageName>
+                    <fields>
+                        <field>
+                            <name>VERSION</name>
+                            <type>String</type>
+                            <value>"${project.version}"</value>
+                        </field>
+                    </fields>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
