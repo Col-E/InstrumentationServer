@@ -28,8 +28,10 @@ public class InstrumentationHelper implements ClassFileTransformer {
 
 	public InstrumentationHelper(Instrumentation instrumentation) {
 		this.instrumentation = instrumentation;
-		this.instrumentation.addTransformer(this, true);
-		populateExisting();
+		if (instrumentation != null) {
+			instrumentation.addTransformer(this, true);
+			populateExisting();
+		}
 	}
 
 	@Override
