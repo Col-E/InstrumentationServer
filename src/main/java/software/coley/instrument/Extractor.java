@@ -32,6 +32,12 @@ public class Extractor {
 
 	public static void extractToPath(Path path) throws IOException {
 		// Get self location
+		List<Item> items = collectSelfItems();
+		// Write to jar
+		writeItems(items, path);
+	}
+
+	public static List<Item> collectSelfItems() throws IOException {
 		URL selfLocation = Extractor.class.getProtectionDomain().getCodeSource().getLocation();
 		String selfFilePath = selfLocation.getFile();
 		if (selfFilePath.startsWith("/"))
@@ -56,7 +62,10 @@ public class Extractor {
 		} else {
 			throw new IOException("Expected running context to be from jar file");
 		}
-		// Write to jar
+		return list;
+	}
+
+	public static void writeItems(List<Item> items, Path path) throws IOException {
 		Manifest manifest = new Manifest();
 		manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
 		manifest.getMainAttributes().put(new Attributes.Name("Premain-Class"), Agent.class.getName());
@@ -64,22 +73,30 @@ public class Extractor {
 		manifest.getMainAttributes().put(new Attributes.Name("Can-Redefine-Classes"), "true");
 		manifest.getMainAttributes().put(new Attributes.Name("Can-Retransform-Classes"), "true");
 		try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(path), manifest)) {
-			for (Item item : list) {
-				JarEntry jarEntry = new JarEntry(item.path);
+			for (Item item : items) {
+				JarEntry jarEntry = new JarEntry(item.getPath());
 				jar.putNextEntry(jarEntry);
-				jar.write(item.content);
+				jar.write(item.getContent());
 				jar.closeEntry();
 			}
 		}
 	}
 
-	private static class Item {
+	public static class Item {
 		private final String path;
 		private final byte[] content;
 
 		private Item(String path, byte[] content) {
 			this.path = path;
 			this.content = content;
+		}
+
+		public String getPath() {
+			return path;
+		}
+
+		public byte[] getContent() {
+			return content;
 		}
 	}
 }
