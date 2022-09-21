@@ -17,6 +17,8 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -244,6 +246,28 @@ public class Server {
 				GetClassCommand getClassCommand = (GetClassCommand) command;
 				getClassCommand.setCode(instrumentationHelper.getClassBytecode(getClassCommand.getName()));
 				Buffers.writeTo(clientChannel, getClassCommand.generate())
+						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+				break;
+			}
+			case CommandConstants.ID_CL_GET_CLASSLOADERS: {
+				// Send back populated command
+				Logger.debug("Server replying to classloaders lookup");
+				Set<GetClassLoadersCommand.LoaderInfo> items = new TreeSet<>();
+				for (ClassLoader loader : instrumentationHelper.getLoaders())
+					items.add(GetClassLoadersCommand.LoaderInfo.from(loader));
+				GetClassLoadersCommand getClassLoadersCommand = (GetClassLoadersCommand) command;
+				getClassLoadersCommand.setItems(items);
+				Buffers.writeTo(clientChannel, getClassLoadersCommand.generate())
+						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+				break;
+			}
+			case CommandConstants.ID_CL_CLASSLOADER_LOADED_CLASSES: {
+				// Send back populated command
+				Logger.debug("Server replying to classloader classes lookup");
+				ClassLoaderClassesCommand classLoaderClassesCommand = (ClassLoaderClassesCommand) command;
+				ClassLoader loader = instrumentationHelper.getClassLoader(classLoaderClassesCommand.getLoaderKey());
+				classLoaderClassesCommand.setClassNames(new TreeSet<>(instrumentationHelper.getLoaderClasses(loader)));
+				Buffers.writeTo(clientChannel, classLoaderClassesCommand.generate())
 						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 				break;
 			}

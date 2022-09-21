@@ -102,11 +102,14 @@ public class Client {
 	}
 
 	/**
+	 * Place to handle commands generically, as opposed to using {@link Consumer} on message replies in
+	 * {@link #send(AbstractCommand, Consumer)}.
+	 *
 	 * @param command
 	 * 		Command to handle.
 	 */
-	private void handleCommand(AbstractCommand command) {
-		// TODO: handle
+	protected void handleCommand(AbstractCommand command) {
+		// no-op by default
 	}
 
 	/**

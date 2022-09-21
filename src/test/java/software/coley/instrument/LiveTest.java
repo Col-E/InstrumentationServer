@@ -6,12 +6,14 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import software.coley.instrument.command.impl.*;
 import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
-import software.coley.instrument.util.Streams;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -58,6 +60,19 @@ public class LiveTest {
 			Client client = new Client();
 			assertTrue(client.connect());
 
+			// Get the classloaders
+			List<GetClassLoadersCommand.LoaderInfo> loaders = new ArrayList<>();
+			client.send(new GetClassLoadersCommand(), reply -> {
+				GetClassLoadersCommand command = (GetClassLoadersCommand) reply;
+				Collection<GetClassLoadersCommand.LoaderInfo> items = command.getItems();
+				for (GetClassLoadersCommand.LoaderInfo item : items) {
+					System.out.println("> Classloader: " + item);
+					if (item.isBootstrap())
+						continue;
+					loaders.add(item);
+				}
+			});
+
 			// Update one key
 			client.send(new SetPropertyCommand("key", "new_value"), reply -> {
 				System.out.println("> Key updated");
@@ -92,7 +107,18 @@ public class LiveTest {
 			// Request loaded class names
 			client.send(new LoadedClassesCommand(), reply -> {
 				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) reply;
-				System.out.println("There are " + loadedClassesCommand.getClassNames().size() + " classes");
+				System.out.println("There are " + loadedClassesCommand.getClassNames().size() + " total classes");
+			});
+
+			// Request loaded class names from just the target loader
+			GetClassLoadersCommand.LoaderInfo targetLoader = loaders.get(0);
+			client.send(new ClassLoaderClassesCommand(targetLoader.getHashCode()), reply -> {
+				ClassLoaderClassesCommand classLoaderClassesCommand = (ClassLoaderClassesCommand) reply;
+				System.out.println("There are " + classLoaderClassesCommand.getClassNames().size() +
+						" classes in " + targetLoader.getTypeName());
+				for (String className : classLoaderClassesCommand.getClassNames()) {
+					System.out.println(" - " + className);
+				}
 			});
 		} finally {
 			// Kill the remote process and delete the agent jar

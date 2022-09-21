@@ -25,7 +25,9 @@ public class CommandFactory implements CommandConstants {
 		COMMAND_SUPPLIERS.put(ID_CL_SET_PROPERTY, SetPropertyCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_GET_FIELD, GetFieldCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_SET_FIELD, SetFieldCommand::new);
+		COMMAND_SUPPLIERS.put(ID_CL_GET_CLASSLOADERS, GetClassLoadersCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_LOADED_CLASSES, LoadedClassesCommand::new);
+		COMMAND_SUPPLIERS.put(ID_CL_CLASSLOADER_LOADED_CLASSES, ClassLoaderClassesCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_GET_CLASS, GetClassCommand::new);
 		COMMAND_SUPPLIERS.put(ID_CL_REDEFINE_CLASS, RedefineClassCommand::new);
 	}

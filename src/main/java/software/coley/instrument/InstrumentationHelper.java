@@ -56,6 +56,7 @@ public class InstrumentationHelper implements ClassFileTransformer {
 
 	/**
 	 * @return All loaders.
+	 * Do note, one will be {@code null} for the bootstrap classloader.
 	 */
 	public Set<ClassLoader> getLoaders() {
 		return loaderToClasses.keySet();
@@ -66,9 +67,25 @@ public class InstrumentationHelper implements ClassFileTransformer {
 	 * 		Name of class.
 	 *
 	 * @return Containing classloader.
+	 * May be {@code null} for bootstrap classloader.
 	 */
 	public ClassLoader getLoaderOfClass(String className) {
 		return classesToLoader.get(className);
+	}
+
+	/**
+	 * @param loaderKey
+	 * 		Loader hash.
+	 *
+	 * @return Matching loader.
+	 */
+	public ClassLoader getClassLoader(int loaderKey) {
+		if (loaderKey == 0)
+			return null;
+		for (ClassLoader loader : getLoaders())
+			if (loader.hashCode() == loaderKey)
+				return loader;
+		return null;
 	}
 
 	/**
@@ -108,6 +125,7 @@ public class InstrumentationHelper implements ClassFileTransformer {
 		Class<?> ref = getClassRef(className);
 		ClassDefinition def = new ClassDefinition(ref, code);
 		instrumentation.redefineClasses(def);
+		classesToCode.put(className, code);
 	}
 
 	/**
