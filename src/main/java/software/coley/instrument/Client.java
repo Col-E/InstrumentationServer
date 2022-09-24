@@ -125,6 +125,20 @@ public class Client {
 	}
 
 	/**
+	 * Synchronized wrapper of {@link #send(AbstractCommand, Consumer)}.
+	 *
+	 * @param command
+	 * 		Command to send.
+	 * @param replyHandler
+	 * 		Handler for replied packets.
+	 *
+	 * @return Number of replies.
+	 */
+	public synchronized int sendSynchronous(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
+		return send(command, replyHandler);
+	}
+
+	/**
 	 * @param command
 	 * 		Command to send.
 	 * @param replyHandler
