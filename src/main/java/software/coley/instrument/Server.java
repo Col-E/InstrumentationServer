@@ -100,7 +100,7 @@ public class Server {
 			try {
 				headerBuffer.clear();
 				Buffers.readFrom(clientChannel, headerBuffer)
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+						.get(1, TimeUnit.DAYS);
 				Logger.info("Server received header");
 			} catch (InterruptedException e) {
 				Logger.error("Server interrupted while reading command header");
