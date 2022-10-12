@@ -134,8 +134,13 @@ public final class ByteBufferDataOutput implements DataOutput {
 	public void writeUTF(String s) {
 		CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
 		CharBuffer cb = CharBuffer.wrap(s);
-		ByteBuffer buffer = buffer(4);
+		// Each character will take up
+		// at least 1 byte if all string is ASCII encoded,
+		// so preallocate larger buffer.
+		ByteBuffer buffer = buffer(4 + s.length());
 		int position = buffer.position();
+		// Add dummy length, it will be replaced
+		// later after whole string is encoded.
 		buffer.putInt(-1);
 		while (true) {
 			CoderResult result = encoder.encode(cb, buffer, true);
@@ -147,7 +152,9 @@ public final class ByteBufferDataOutput implements DataOutput {
 				buffer.putInt(position, newPosition - position - 4);
 				break;
 			} else if (result.isOverflow()) {
-				buffer = buffer(256);
+				// Encoder might overflow if there are non-ASCII characters
+				// in the string, take a guess of how much more data we have to encode.
+				buffer = buffer(Math.max((int) encoder.averageBytesPerChar() * cb.remaining(), 64));
 				continue;
 			}
 			throw new IllegalStateException("Unexpected coder result: " + result);
