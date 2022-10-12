@@ -1,7 +1,7 @@
 package software.coley.instrument.command.request;
 
 import software.coley.instrument.command.AbstractCommand;
-import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.codec.StructureCodec;
 import software.coley.instrument.util.Logger;
 
@@ -19,30 +19,30 @@ import static software.coley.instrument.util.DescUtil.*;
  */
 public class RequestFieldSetCommand extends AbstractCommand {
 	public static final StructureCodec<RequestFieldSetCommand> CODEC =
-			StructureCodec.compose(input -> new RequestFieldSetCommand(MemberInfo.CODEC.decode(input), input.readUTF()),
+			StructureCodec.compose(input -> new RequestFieldSetCommand(MemberData.CODEC.decode(input), input.readUTF()),
 					((output, value) -> {
-						MemberInfo.CODEC.encode(output, value.getMemberInfo());
+						MemberData.CODEC.encode(output, value.getMemberInfo());
 						output.writeUTF(value.getValueText());
 					}));
-	private final MemberInfo memberInfo;
+	private final MemberData memberData;
 	private final String valueText;
 
 	/**
-	 * @param memberInfo
-	 * 		Field member info.
+	 * @param memberData
+	 * 		Field member data.
 	 * @param valueText
 	 * 		Field value as a string.
 	 */
-	public RequestFieldSetCommand(MemberInfo memberInfo, String valueText) {
-		this.memberInfo = memberInfo;
+	public RequestFieldSetCommand(MemberData memberData, String valueText) {
+		this.memberData = memberData;
 		this.valueText = valueText;
 	}
 
 	/**
-	 * @return Field member info.
+	 * @return Field member data.
 	 */
-	public MemberInfo getMemberInfo() {
-		return memberInfo;
+	public MemberData getMemberInfo() {
+		return memberData;
 	}
 
 	/**
@@ -56,9 +56,9 @@ public class RequestFieldSetCommand extends AbstractCommand {
 	 * Lookup the field and assign the value.
 	 */
 	public void assignValue() {
-		String owner = memberInfo.getOwner();
-		String name = memberInfo.getName();
-		String desc = memberInfo.getDesc();
+		String owner = memberData.getOwner();
+		String name = memberData.getName();
+		String desc = memberData.getDesc();
 		if (owner == null || name == null || desc == null || valueText == null)
 			throw new IllegalStateException("Field indicators not set before usage");
 		try {
@@ -111,9 +111,9 @@ public class RequestFieldSetCommand extends AbstractCommand {
 
 	@Override
 	public String toString() {
-		String owner = memberInfo.getOwner();
-		String name = memberInfo.getName();
-		String desc = memberInfo.getDesc();
+		String owner = memberData.getOwner();
+		String name = memberData.getName();
+		String desc = memberData.getDesc();
 		return "RequestFieldSetCommand[" +
 				"owner='" + owner + '\'' +
 				", name='" + name + '\'' +
@@ -183,7 +183,7 @@ public class RequestFieldSetCommand extends AbstractCommand {
 		if (valueText.equals("null"))
 			return null;
 		// Type implementations
-		String desc = memberInfo.getDesc();
+		String desc = memberData.getDesc();
 		if (desc.equals(INT_DESC))
 			return mapInt();
 		else if (desc.equals(BOOL_DESC))

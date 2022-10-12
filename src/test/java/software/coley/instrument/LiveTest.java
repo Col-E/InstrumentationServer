@@ -8,7 +8,7 @@ import software.coley.instrument.command.reply.ReplyClassloadersCommand;
 import software.coley.instrument.command.reply.ReplyFieldGetCommand;
 import software.coley.instrument.command.request.*;
 import software.coley.instrument.data.ClassLoaderInfo;
-import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -91,13 +90,13 @@ public class LiveTest {
 			});
 
 			// Request static field value
-			MemberInfo memberInfo = new MemberInfo("Runner", "key", DescUtil.STRING_DESC);
-			client.sendBlocking(new RequestFieldGetCommand(memberInfo), (ReplyFieldGetCommand reply) -> {
+			MemberData memberData = new MemberData("Runner", "key", DescUtil.STRING_DESC);
+			client.sendBlocking(new RequestFieldGetCommand(memberData), (ReplyFieldGetCommand reply) -> {
 				assertEquals("key", reply.getValueText());
 			});
 
 			// Set static field value to different value
-			client.sendBlocking(new RequestFieldSetCommand(memberInfo, "alt-key"), null);
+			client.sendBlocking(new RequestFieldSetCommand(memberData, "alt-key"), null);
 
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);

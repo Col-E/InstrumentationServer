@@ -1,7 +1,7 @@
 package software.coley.instrument.command.request;
 
 import software.coley.instrument.command.AbstractCommand;
-import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.codec.StructureCodec;
 import software.coley.instrument.util.Logger;
 
@@ -19,23 +19,23 @@ import static software.coley.instrument.util.DescUtil.isPrimitiveName;
  */
 public class RequestFieldGetCommand extends AbstractCommand {
 	public static final StructureCodec<RequestFieldGetCommand> CODEC =
-			StructureCodec.compose(input -> new RequestFieldGetCommand(MemberInfo.CODEC.decode(input)),
-					    ((output, value) -> MemberInfo.CODEC.encode(output, value.getMemberInfo())));
-	private final MemberInfo memberInfo;
+			StructureCodec.compose(input -> new RequestFieldGetCommand(MemberData.CODEC.decode(input)),
+					    ((output, value) -> MemberData.CODEC.encode(output, value.getMemberInfo())));
+	private final MemberData memberData;
 
 	/**
-	 * @param memberInfo
-	 * 		Field member info.
+	 * @param memberData
+	 * 		Field member data.
 	 */
-	public RequestFieldGetCommand(MemberInfo memberInfo) {
-		this.memberInfo = memberInfo;
+	public RequestFieldGetCommand(MemberData memberData) {
+		this.memberData = memberData;
 	}
 
 	/**
-	 * @return Field member info.
+	 * @return Field member data.
 	 */
-	public MemberInfo getMemberInfo() {
-		return memberInfo;
+	public MemberData getMemberInfo() {
+		return memberData;
 	}
 
 	/**
@@ -43,9 +43,9 @@ public class RequestFieldGetCommand extends AbstractCommand {
 	 * {@code null} when cannot be found.
 	 */
 	public String lookupValue() {
-		String owner = memberInfo.getOwner();
-		String name = memberInfo.getName();
-		String desc = memberInfo.getDesc();
+		String owner = memberData.getOwner();
+		String name = memberData.getName();
+		String desc = memberData.getDesc();
 		String valueText = null;
 		if (owner == null || name == null || desc == null)
 			throw new IllegalStateException("Field indicators not set before usage");

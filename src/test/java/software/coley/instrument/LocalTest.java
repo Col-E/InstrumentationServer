@@ -8,7 +8,7 @@ import software.coley.instrument.command.reply.ReplyPropertiesCommand;
 import software.coley.instrument.command.request.RequestFieldGetCommand;
 import software.coley.instrument.command.request.RequestPingCommand;
 import software.coley.instrument.command.request.RequestPropertiesCommand;
-import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.util.Logger;
 
@@ -46,8 +46,8 @@ public class LocalTest {
 		});
 
 		// Field lookup
-		MemberInfo memberInfo = new MemberInfo("java/lang/Integer", "MAX_VALUE", "I");
-		client.sendBlocking(new RequestFieldGetCommand(memberInfo), (ReplyFieldGetCommand reply) -> {
+		MemberData memberData = new MemberData("java/lang/Integer", "MAX_VALUE", "I");
+		client.sendBlocking(new RequestFieldGetCommand(memberData), (ReplyFieldGetCommand reply) -> {
 			assertEquals(String.valueOf(Integer.MAX_VALUE), reply.getValueText());
 		});
 	}

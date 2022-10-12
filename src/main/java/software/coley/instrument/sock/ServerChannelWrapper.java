@@ -4,7 +4,7 @@ import software.coley.instrument.InstrumentationHelper;
 import software.coley.instrument.Server;
 import software.coley.instrument.command.reply.*;
 import software.coley.instrument.command.request.*;
-import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.util.Logger;
 
@@ -86,7 +86,7 @@ public final class ServerChannelWrapper extends ChannelWrapper {
 			}
 		});
 		answer(RequestFieldGetCommand.class, req -> {
-			MemberInfo member = req.getMemberInfo();
+			MemberData member = req.getMemberInfo();
 			try {
 				return new ReplyFieldGetCommand(member, req.lookupValue());
 			} catch (Exception ex) {

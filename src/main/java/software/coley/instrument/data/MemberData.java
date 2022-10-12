@@ -9,9 +9,9 @@ import java.util.Objects;
  *
  * @author Matt Coley
  */
-public class MemberInfo {
-	public static final StructureCodec<MemberInfo> CODEC =
-			StructureCodec.compose(input -> new MemberInfo(
+public class MemberData {
+	public static final StructureCodec<MemberData> CODEC =
+			StructureCodec.compose(input -> new MemberData(
 							input.readUTF(),
 							input.readUTF(),
 							input.readUTF()),
@@ -24,7 +24,7 @@ public class MemberInfo {
 	private final String name;
 	private final String desc;
 
-	public MemberInfo(String owner, String name, String desc) {
+	public MemberData(String owner, String name, String desc) {
 		this.owner = owner;
 		this.name = name;
 		this.desc = desc;
@@ -46,7 +46,7 @@ public class MemberInfo {
 	public boolean equals(Object o) {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
-		MemberInfo info = (MemberInfo) o;
+		MemberData info = (MemberData) o;
 		if (!Objects.equals(owner, info.owner)) return false;
 		if (!Objects.equals(name, info.name)) return false;
 		return Objects.equals(desc, info.desc);

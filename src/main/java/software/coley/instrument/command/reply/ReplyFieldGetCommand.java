@@ -2,7 +2,7 @@ package software.coley.instrument.command.reply;
 
 import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.command.request.RequestFieldGetCommand;
-import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.codec.StructureCodec;
 
 /**
@@ -13,23 +13,23 @@ import software.coley.instrument.io.codec.StructureCodec;
  */
 public class ReplyFieldGetCommand extends AbstractCommand {
 	public static final StructureCodec<ReplyFieldGetCommand> CODEC =
-			StructureCodec.compose(input -> new ReplyFieldGetCommand(MemberInfo.CODEC.decode(input), input.readUTF()),
+			StructureCodec.compose(input -> new ReplyFieldGetCommand(MemberData.CODEC.decode(input), input.readUTF()),
 					((output, value) -> {
-						MemberInfo.CODEC.encode(output, value.getMemberInfo());
+						MemberData.CODEC.encode(output, value.getMemberInfo());
 						output.writeUTF(value.getValueText());
 					}));
 	private static final String UNKNOWN_VALUE = "?";
-	private final MemberInfo memberInfo;
+	private final MemberData memberData;
 	private final String valueText;
 
 	/**
-	 * @param memberInfo
-	 * 		Field member info.
+	 * @param memberData
+	 * 		Field member data.
 	 * @param valueText
 	 * 		Field value as a string.
 	 */
-	public ReplyFieldGetCommand(MemberInfo memberInfo, String valueText) {
-		this.memberInfo = memberInfo;
+	public ReplyFieldGetCommand(MemberData memberData, String valueText) {
+		this.memberData = memberData;
 		this.valueText = valueText != null ? valueText : UNKNOWN_VALUE;
 	}
 
@@ -41,10 +41,10 @@ public class ReplyFieldGetCommand extends AbstractCommand {
 	}
 
 	/**
-	 * @return Field member info.
+	 * @return Field member data.
 	 */
-	public MemberInfo getMemberInfo() {
-		return memberInfo;
+	public MemberData getMemberInfo() {
+		return memberData;
 	}
 
 	/**
@@ -56,9 +56,9 @@ public class ReplyFieldGetCommand extends AbstractCommand {
 
 	@Override
 	public String toString() {
-		String owner = memberInfo.getOwner();
-		String name = memberInfo.getName();
-		String desc = memberInfo.getDesc();
+		String owner = memberData.getOwner();
+		String name = memberData.getName();
+		String desc = memberData.getDesc();
 		return "ReplyFieldGetCommand[" +
 				"owner='" + owner + '\'' +
 				", name='" + name + '\'' +
