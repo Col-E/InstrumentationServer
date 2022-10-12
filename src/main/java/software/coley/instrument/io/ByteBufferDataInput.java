@@ -95,16 +95,10 @@ public final class ByteBufferDataInput implements DataInput {
 
 	@Override
 	public String readUTF() throws IOException {
-		ByteBuffer buffer = this.buffer;
-		int len = buffer.getInt();
-		ByteBuffer slice = buffer.slice().order(buffer.order());
-		slice.limit(len);
-		CharBuffer cb;
-		try {
-			cb = StandardCharsets.UTF_8.newDecoder().decode(slice);
-		} catch (CharacterCodingException ex) {
-			throw new IOException(ex);
-		}
-		return cb.toString();
+		int length = readInt();
+		char[] chars = new char[length];
+		for (int i = 0; i < length;i++)
+			chars[i] = readChar();
+		return new String(chars);
 	}
 }

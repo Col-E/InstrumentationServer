@@ -87,7 +87,8 @@ public class Client {
 		int frameId = clientChannel.getNextFrameId();
 		clientChannel.setResponseListener(frameId, value -> {
 			try {
-				replyHandler.accept((AbstractCommand) value);
+				if (replyHandler != null)
+					replyHandler.accept((AbstractCommand) value);
 				replyFuture.complete(value);
 			} catch (Exception ex) {
 				replyFuture.completeExceptionally(ex);

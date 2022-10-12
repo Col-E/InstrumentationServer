@@ -101,7 +101,6 @@ public class ChannelWrapper {
 	 * @return Future of read value.
 	 */
 	public <T> CompletableFuture<ReadResult<T>> read() {
-		Logger.debug("Channel read initiate");
 		ByteBufferSanitizer input = this.input;
 		input.clear();
 		input.ensureWriteable(8);

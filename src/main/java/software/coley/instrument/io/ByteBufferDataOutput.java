@@ -114,26 +114,8 @@ public final class ByteBufferDataOutput implements DataOutput {
 
 	@Override
 	public void writeUTF(String s) {
-		CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
-		CharBuffer cb = CharBuffer.wrap(s);
-		ByteBuffer buffer = buffer(4);
-		int position = buffer.position();
-		buffer.putInt(-1);
-		while (true) {
-			CoderResult result = encoder.encode(cb, buffer, true);
-			if (result.isUnderflow()) {
-				if (cb.hasRemaining()) {
-					throw new IllegalStateException("Buffer must have no data left");
-				}
-				int newPosition = buffer.position();
-				buffer.putInt(position, newPosition - position - 4);
-				break;
-			} else if (result.isOverflow()) {
-				buffer = buffer(256);
-				continue;
-			}
-			throw new IllegalStateException("Unexpected coder result: " + result);
-		}
+		writeInt(s.length());
+		writeChars(s);
 	}
 
 	private ByteBuffer buffer(int size) {
