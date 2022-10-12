@@ -1,7 +1,7 @@
 package software.coley.instrument.io;
 
 import java.io.DataInput;
-import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -93,12 +93,33 @@ public final class ByteBufferDataInput implements DataInput {
 		throw new UnsupportedOperationException();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @throws UncheckedIOException
+	 * 		If any I/O error is thrown. See comment in catch block.
+	 * @see UncheckedIOException#getCause()
+	 */
 	@Override
-	public String readUTF() throws IOException {
-		int length = readInt();
-		char[] chars = new char[length];
-		for (int i = 0; i < length;i++)
-			chars[i] = readChar();
-		return new String(chars);
+	public String readUTF() {
+		ByteBuffer buffer = this.buffer;
+		int len = buffer.getInt();
+		// Calling slice allows us to limit and set position to 0,
+		// so we can update the actual buffer after decoding is done.
+		ByteBuffer slice = buffer.slice().order(buffer.order());
+		slice.limit(len);
+		CharBuffer cb;
+		try {
+			cb = StandardCharsets.UTF_8.newDecoder().decode(slice);
+		} catch (CharacterCodingException ex) {
+			// This should not occur since default decoder
+			// replaces invalid characters, but we will throw
+			// unchecked I/O exception just in case.
+			throw new UncheckedIOException(ex);
+		}
+		// We need to move position of the original buffer accordingly,
+		// otherwise it will cause later invocations to error.
+		buffer.position(buffer.position() + slice.position());
+		return cb.toString();
 	}
 }

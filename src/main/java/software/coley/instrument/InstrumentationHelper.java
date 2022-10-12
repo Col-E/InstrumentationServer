@@ -1,7 +1,6 @@
 package software.coley.instrument;
 
 import software.coley.instrument.data.ClassData;
-import software.coley.instrument.data.ClassLoaderInfo;
 import software.coley.instrument.data.ServerClassLoaderInfo;
 import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.Streams;
@@ -17,7 +16,6 @@ import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.jar.JarFile;
 
 /**
  * Wrapper around {@link Instrumentation} and {@link ClassFileTransformer}.
@@ -25,7 +23,7 @@ import java.util.jar.JarFile;
  * @author Matt Coley
  * @author xxDark
  */
-public final class InstrumentationHelper implements Instrumentation, ClassFileTransformer {
+public final class InstrumentationHelper implements ClassFileTransformer {
 	private static final ClassLoader SCL = ClassLoader.getSystemClassLoader();
 	private static final Method CLASS_LOADER_NAME;
 	// ClassLoader collections
@@ -207,7 +205,7 @@ public final class InstrumentationHelper implements Instrumentation, ClassFileTr
 	public void redefineClass(String className, byte[] code) throws UnmodifiableClassException, ClassNotFoundException {
 		Class<?> ref = getClassRef(className);
 		ClassDefinition def = new ClassDefinition(ref, code);
-		redefineClasses(def);
+		instrumentation.redefineClasses(def);
 		classesToCode.put(className, code);
 	}
 
@@ -244,79 +242,11 @@ public final class InstrumentationHelper implements Instrumentation, ClassFileTr
 		lock.unlock();
 	}
 
-	@Override
-	public void addTransformer(ClassFileTransformer transformer, boolean canRetransform) {
-		instrumentation.addTransformer(transformer, canRetransform);
-	}
-
-	@Override
-	public void addTransformer(ClassFileTransformer transformer) {
-		instrumentation.addTransformer(transformer);
-	}
-
-	@Override
-	public boolean removeTransformer(ClassFileTransformer transformer) {
-		return instrumentation.removeTransformer(transformer);
-	}
-
-	@Override
-	public boolean isRetransformClassesSupported() {
-		return instrumentation.isRetransformClassesSupported();
-	}
-
-	@Override
-	public void retransformClasses(Class<?>... classes) throws UnmodifiableClassException {
-		instrumentation.retransformClasses(classes);
-	}
-
-	@Override
-	public boolean isRedefineClassesSupported() {
-		return instrumentation.isRedefineClassesSupported();
-	}
-
-	@Override
-	public void redefineClasses(ClassDefinition... definitions) throws ClassNotFoundException, UnmodifiableClassException {
-		instrumentation.redefineClasses(definitions);
-	}
-
-	@Override
-	public boolean isModifiableClass(Class<?> theClass) {
-		return instrumentation.isModifiableClass(theClass);
-	}
-
-	@Override
-	public Class<?>[] getAllLoadedClasses() {
-		return instrumentation.getAllLoadedClasses();
-	}
-
-	@Override
-	public Class<?>[] getInitiatedClasses(ClassLoader loader) {
-		return instrumentation.getInitiatedClasses(loader);
-	}
-
-	@Override
-	public long getObjectSize(Object objectToSize) {
-		return instrumentation.getObjectSize(objectToSize);
-	}
-
-	@Override
-	public void appendToBootstrapClassLoaderSearch(JarFile jarfile) {
-		instrumentation.appendToBootstrapClassLoaderSearch(jarfile);
-	}
-
-	@Override
-	public void appendToSystemClassLoaderSearch(JarFile jarfile) {
-		instrumentation.appendToSystemClassLoaderSearch(jarfile);
-	}
-
-	@Override
-	public boolean isNativeMethodPrefixSupported() {
-		return instrumentation.isNativeMethodPrefixSupported();
-	}
-
-	@Override
-	public void setNativeMethodPrefix(ClassFileTransformer transformer, String prefix) {
-		instrumentation.setNativeMethodPrefix(transformer, prefix);
+	/**
+	 * @return Instrumentation instance.
+	 */
+	public Instrumentation instrumentation() {
+		return instrumentation;
 	}
 
 	private static ServerClassLoaderInfo getInfoForClassLoader(ClassLoader loader) {
@@ -325,10 +255,10 @@ public final class InstrumentationHelper implements Instrumentation, ClassFileTr
 		if (loader == null) {
 			name = "Bootstrap ClassLoader";
 			id = 0;
-		} else if (loader == SCL){
+		} else if (loader == SCL) {
 			name = "System ClassLoader";
 			id = 1;
-		}else {
+		} else {
 			name = lookupClassLoaderName(loader);
 			id = loader.hashCode();
 		}
