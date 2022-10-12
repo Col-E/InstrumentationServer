@@ -1,35 +1,48 @@
-package software.coley.instrument.command.impl;
+package software.coley.instrument.command.request;
 
-import software.coley.instrument.util.Buffers;
-import software.coley.instrument.util.ByteGen;
+import software.coley.instrument.command.AbstractCommand;
+import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.io.codec.StructureCodec;
 import software.coley.instrument.util.Logger;
 
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 
 import static software.coley.instrument.util.DescUtil.*;
 
 /**
- * Handles setting a static field.
+ * Command that handles setting a static field.
  *
  * @author Matt Coley
  */
-public class SetFieldCommand extends AbstractMemberCommand {
-	private String valueText;
+public class RequestFieldSetCommand extends AbstractCommand {
+	public static final StructureCodec<RequestFieldSetCommand> CODEC =
+			StructureCodec.compose(input -> new RequestFieldSetCommand(MemberInfo.CODEC.decode(input), input.readUTF()),
+					((output, value) -> {
+						MemberInfo.CODEC.encode(output, value.getMemberInfo());
+						output.writeUTF(value.getValueText());
+					}));
+	private final MemberInfo memberInfo;
+	private final String valueText;
 
-	public SetFieldCommand() {
-		super(ID_CL_SET_FIELD);
+	/**
+	 * @param memberInfo
+	 * 		Field member info.
+	 * @param valueText
+	 * 		Field value as a string.
+	 */
+	public RequestFieldSetCommand(MemberInfo memberInfo, String valueText) {
+		this.memberInfo = memberInfo;
+		this.valueText = valueText;
 	}
 
-	public SetFieldCommand(String owner, String name, String desc, String valueText) {
-		this();
-		setOwner(owner);
-		setName(name);
-		setDesc(desc);
-		setValueText(valueText);
+	/**
+	 * @return Field member info.
+	 */
+	public MemberInfo getMemberInfo() {
+		return memberInfo;
 	}
 
 	/**
@@ -40,17 +53,12 @@ public class SetFieldCommand extends AbstractMemberCommand {
 	}
 
 	/**
-	 * @param valueText
-	 * 		Field value as a string.
-	 */
-	public void setValueText(String valueText) {
-		this.valueText = valueText;
-	}
-
-	/**
 	 * Lookup the field and assign the value.
 	 */
 	public void assignValue() {
+		String owner = memberInfo.getOwner();
+		String name = memberInfo.getName();
+		String desc = memberInfo.getDesc();
 		if (owner == null || name == null || desc == null || valueText == null)
 			throw new IllegalStateException("Field indicators not set before usage");
 		try {
@@ -102,28 +110,11 @@ public class SetFieldCommand extends AbstractMemberCommand {
 	}
 
 	@Override
-	public void read(ByteBuffer in) {
-		owner = Buffers.getString(in);
-		name = Buffers.getString(in);
-		desc = Buffers.getString(in);
-		valueText = Buffers.getString(in);
-	}
-
-	@Override
-	public byte[] generate() {
-		if (owner == null || name == null || desc == null || valueText == null)
-			throw new IllegalStateException("Field indicators not set before usage");
-		return new ByteGen()
-				.appendString(owner)
-				.appendString(name)
-				.appendString(desc)
-				.appendString(valueText)
-				.build((byte) key());
-	}
-
-	@Override
 	public String toString() {
-		return "SetFieldCommand[" +
+		String owner = memberInfo.getOwner();
+		String name = memberInfo.getName();
+		String desc = memberInfo.getDesc();
+		return "RequestFieldSetCommand[" +
 				"owner='" + owner + '\'' +
 				", name='" + name + '\'' +
 				", desc='" + desc + '\'' +
@@ -192,6 +183,7 @@ public class SetFieldCommand extends AbstractMemberCommand {
 		if (valueText.equals("null"))
 			return null;
 		// Type implementations
+		String desc = memberInfo.getDesc();
 		if (desc.equals(INT_DESC))
 			return mapInt();
 		else if (desc.equals(BOOL_DESC))

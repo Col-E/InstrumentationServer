@@ -2,12 +2,17 @@ package software.coley.instrument;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import software.coley.instrument.command.impl.GetFieldCommand;
-import software.coley.instrument.command.impl.PingCommand;
-import software.coley.instrument.command.impl.PongCommand;
-import software.coley.instrument.command.impl.PropertiesCommand;
+import software.coley.instrument.command.reply.ReplyFieldGetCommand;
+import software.coley.instrument.command.reply.ReplyPingCommand;
+import software.coley.instrument.command.reply.ReplyPropertiesCommand;
+import software.coley.instrument.command.request.RequestFieldGetCommand;
+import software.coley.instrument.command.request.RequestPingCommand;
+import software.coley.instrument.command.request.RequestPropertiesCommand;
+import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.util.Logger;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,29 +27,28 @@ public class LocalTest {
 	@Test
 	public void test() throws Exception {
 		int port = Server.DEFAULT_PORT;
+		Server.open(null, new InetSocketAddress("localhost", port), ByteBufferAllocator.DIRECT);
 
-		Server server = new Server(null, port);
-		server.acceptAsync(channel -> System.out.println("Connected!"));
-
-		Client client = new Client(port);
+		Client client = new Client("localhost", Server.DEFAULT_PORT, ByteBufferAllocator.DIRECT);
 		assertTrue(client.connect());
 
 		// Ping-Pong
 		for (int i = 0; i < 20; i++) {
-			client.send(new PingCommand(), reply -> {
-				assertTrue(reply instanceof PongCommand);
+			client.sendBlocking(new RequestPingCommand(), reply -> {
+				assertTrue(reply instanceof ReplyPingCommand);
 			});
 		}
 
 		// Properties lookup
-		client.send(new PropertiesCommand(), reply -> {
-			Map<String, String> results = ((PropertiesCommand) reply).mapValue();
+		client.sendBlocking(new RequestPropertiesCommand(), reply -> {
+			Map<String, String> results = ((ReplyPropertiesCommand) reply).mapValue();
 			assertNotNull(results);
 		});
 
 		// Field lookup
-		client.send(new GetFieldCommand("java/lang/Integer", "MAX_VALUE", "I"), reply -> {
-			assertEquals(String.valueOf(Integer.MAX_VALUE), ((GetFieldCommand) reply).getValueText());
+		MemberInfo memberInfo = new MemberInfo("java/lang/Integer", "MAX_VALUE", "I");
+		client.sendBlocking(new RequestFieldGetCommand(memberInfo), (ReplyFieldGetCommand reply) -> {
+			assertEquals(String.valueOf(Integer.MAX_VALUE), reply.getValueText());
 		});
 	}
 }

@@ -1,56 +1,53 @@
-package software.coley.instrument.command.impl;
+package software.coley.instrument.command.request;
 
-import software.coley.instrument.util.Buffers;
-import software.coley.instrument.util.ByteGen;
+import software.coley.instrument.command.AbstractCommand;
+import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.io.codec.StructureCodec;
 import software.coley.instrument.util.Logger;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static software.coley.instrument.util.DescUtil.getDescriptor;
 import static software.coley.instrument.util.DescUtil.isPrimitiveName;
 
 /**
- * Handles getting a static field.
+ * Request to get the content of a static field.
  *
  * @author Matt Coley
  */
-public class GetFieldCommand extends AbstractMemberCommand {
-	private String valueText;
+public class RequestFieldGetCommand extends AbstractCommand {
+	public static final StructureCodec<RequestFieldGetCommand> CODEC =
+			StructureCodec.compose(input -> new RequestFieldGetCommand(MemberInfo.CODEC.decode(input)),
+					((output, value) -> MemberInfo.CODEC.encode(output, value.getMemberInfo())));
+	private final MemberInfo memberInfo;
 
-	public GetFieldCommand() {
-		super(ID_CL_GET_FIELD);
-	}
-
-	public GetFieldCommand(String owner, String name, String desc) {
-		this();
-		setOwner(owner);
-		setName(name);
-		setDesc(desc);
+	/**
+	 * @param memberInfo
+	 * 		Field member info.
+	 */
+	public RequestFieldGetCommand(MemberInfo memberInfo) {
+		this.memberInfo = memberInfo;
 	}
 
 	/**
-	 * @return Field value as a string.
+	 * @return Field member info.
 	 */
-	public String getValueText() {
-		return valueText;
+	public MemberInfo getMemberInfo() {
+		return memberInfo;
 	}
 
-	/**
-	 * @param valueText
-	 * 		Field value as a string.
-	 */
-	public void setValueText(String valueText) {
-		this.valueText = valueText;
-	}
 
 	/**
 	 * @return Text representation of field value.
 	 * {@code null} when cannot be found.
 	 */
 	public String lookupValue() {
+		String owner = memberInfo.getOwner();
+		String name = memberInfo.getName();
+		String desc = memberInfo.getDesc();
+		String valueText = null;
 		if (owner == null || name == null || desc == null)
 			throw new IllegalStateException("Field indicators not set before usage");
 		try {
@@ -102,36 +99,6 @@ public class GetFieldCommand extends AbstractMemberCommand {
 			Logger.error("Failed to set field value: " + ex);
 			return null;
 		}
-	}
-
-	@Override
-	public void read(ByteBuffer in) {
-		owner = Buffers.getString(in);
-		name = Buffers.getString(in);
-		desc = Buffers.getString(in);
-		valueText = Buffers.getString(in);
-	}
-
-	@Override
-	public byte[] generate() {
-		if (owner == null || name == null || desc == null)
-			throw new IllegalStateException("Field indicators not set before usage");
-		return new ByteGen()
-				.appendString(owner)
-				.appendString(name)
-				.appendString(desc)
-				.appendString(valueText)
-				.build((byte) key());
-	}
-
-	@Override
-	public String toString() {
-		return "GetFieldCommand[" +
-				"owner='" + owner + '\'' +
-				", name='" + name + '\'' +
-				", desc='" + desc + '\'' +
-				", valueText='" + valueText + '\'' +
-				']';
 	}
 
 	private String mapObjectValue(Object value) {

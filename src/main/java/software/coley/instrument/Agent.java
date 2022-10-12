@@ -1,7 +1,10 @@
 package software.coley.instrument;
 
+import software.coley.instrument.io.ByteBufferAllocator;
+
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.net.InetSocketAddress;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,14 +52,12 @@ public class Agent {
 	 * 		When the server could not be initialized.
 	 */
 	private static void agent(String agentArgs, Instrumentation instrumentation) throws IOException {
-		if (server == null) {
+		if (server == null || server.isClosed()) {
 			// Determine port
 			int port = getPort(agentArgs);
 			// Create server
-			server = new Server(instrumentation, port);
+			server = Server.open(instrumentation, new InetSocketAddress("localhost", port), ByteBufferAllocator.HEAP);
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close()));
-			// Accept new client
-			server.acceptAsync(null);
 		}
 	}
 

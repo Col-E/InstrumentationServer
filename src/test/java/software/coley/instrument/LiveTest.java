@@ -3,7 +3,13 @@ package software.coley.instrument;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
-import software.coley.instrument.command.impl.*;
+import software.coley.instrument.command.reply.ReplyClassloaderClassesCommand;
+import software.coley.instrument.command.reply.ReplyClassloadersCommand;
+import software.coley.instrument.command.reply.ReplyFieldGetCommand;
+import software.coley.instrument.command.request.*;
+import software.coley.instrument.data.ClassLoaderInfo;
+import software.coley.instrument.data.MemberInfo;
+import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
 
@@ -57,24 +63,22 @@ public class LiveTest {
 			start = pb.start();
 			// Setup our local client
 			Thread.sleep(1500);
-			Client client = new Client();
+			Client client = new Client("localhost", Server.DEFAULT_PORT, ByteBufferAllocator.HEAP);
 			assertTrue(client.connect());
 
 			// Get the classloaders
-			List<GetClassLoadersCommand.LoaderInfo> loaders = new ArrayList<>();
-			client.send(new GetClassLoadersCommand(), reply -> {
-				GetClassLoadersCommand command = (GetClassLoadersCommand) reply;
-				Collection<GetClassLoadersCommand.LoaderInfo> items = command.getItems();
-				for (GetClassLoadersCommand.LoaderInfo item : items) {
-					System.out.println("> Classloader: " + item);
-					if (item.isBootstrap())
+			List<ClassLoaderInfo> loaders = new ArrayList<>();
+			client.sendBlocking(new RequestClassloadersCommand(), (ReplyClassloadersCommand reply) -> {
+				for (ClassLoaderInfo loaderInfo : reply.getClassLoaders()) {
+					System.out.println("> Classloader: " + loaderInfo.getName());
+					if (loaderInfo.isBootstrap())
 						continue;
-					loaders.add(item);
+					loaders.add(loaderInfo);
 				}
 			});
 
 			// Update one key
-			client.send(new SetPropertyCommand("key", "new_value"), reply -> {
+			client.sendBlocking(new RequestSetPropertyCommand("key", "new_value"), reply -> {
 				System.out.println("> Key updated");
 			});
 
@@ -82,43 +86,31 @@ public class LiveTest {
 			Thread.sleep(2000);
 
 			// Update another
-			client.send(new SetPropertyCommand("alt-key", "alt_key_value"), reply -> {
+			client.sendBlocking(new RequestSetPropertyCommand("alt-key", "alt_key_value"), reply -> {
 				System.out.println("> Alt-key updated");
 			});
 
 			// Request static field value
-			client.send(new GetFieldCommand("Runner", "key", DescUtil.STRING_DESC), reply -> {
-				GetFieldCommand getFieldCommand = (GetFieldCommand) reply;
-				assertEquals("key", getFieldCommand.getValueText());
+			MemberInfo memberInfo = new MemberInfo("Runner", "key", DescUtil.STRING_DESC);
+			client.sendBlocking(new RequestFieldGetCommand(memberInfo), (ReplyFieldGetCommand reply) -> {
+				assertEquals("key", reply.getValueText());
 			});
 
 			// Set static field value to different value
-			client.send(new SetFieldCommand("Runner", "key", DescUtil.STRING_DESC, "alt-key"), null);
+			client.sendBlocking(new RequestFieldSetCommand(memberInfo, "alt-key"), null);
 
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
 			byte[] code = Files.readAllBytes(Paths.get("src/test/resources/Runner-instrumented.class"));
-			client.send(new RedefineClassCommand("Runner", code), null);
+			client.sendBlocking(new RequestRedefineCommand("Runner", code), null);
 
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
-			// Request loaded class names
-			client.send(new LoadedClassesCommand(), reply -> {
-				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) reply;
-				System.out.println("There are " + loadedClassesCommand.getClassNames().size() + " total classes");
-			});
-
-			// Request loaded class names from just the target loader
-			GetClassLoadersCommand.LoaderInfo targetLoader = loaders.get(0);
-			client.send(new ClassLoaderClassesCommand(targetLoader.getHashCode()), reply -> {
-				ClassLoaderClassesCommand classLoaderClassesCommand = (ClassLoaderClassesCommand) reply;
-				System.out.println("There are " + classLoaderClassesCommand.getClassNames().size() +
-						" classes in " + targetLoader.getTypeName());
-				for (String className : classLoaderClassesCommand.getClassNames()) {
-					System.out.println(" - " + className);
-				}
+			// Request loaded class names in the system classloader
+			client.sendBlocking(new RequestClassloaderClassesCommand(1), (ReplyClassloaderClassesCommand reply) -> {
+				System.out.println("There are " + reply.getClasses().size() + " total classes in the SCL");
 			});
 		} finally {
 			// Kill the remote process and delete the agent jar

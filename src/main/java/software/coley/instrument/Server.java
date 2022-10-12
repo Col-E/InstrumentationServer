@@ -1,324 +1,133 @@
 package software.coley.instrument;
 
-import software.coley.instrument.command.AbstractCommand;
-import software.coley.instrument.command.CommandConstants;
-import software.coley.instrument.command.CommandFactory;
-import software.coley.instrument.command.impl.*;
-import software.coley.instrument.util.Buffers;
+import software.coley.instrument.io.ByteBufferAllocator;
+import software.coley.instrument.sock.ChannelWrapper;
+import software.coley.instrument.sock.ServerChannelWrapper;
 import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
-import java.lang.instrument.UnmodifiableClassException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Server which exposes capabilities of {@link Instrumentation} to a client.
  *
+ * @author xxDark
  * @author Matt Coley
  */
 public class Server {
 	public static final int DEFAULT_PORT = 25252;
-	private final List<AsynchronousSocketChannel> clients = new ArrayList<>();
+	private final Set<ChannelWrapper> clients = Collections.synchronizedSet(new HashSet<>());
+	private final AtomicBoolean closed = new AtomicBoolean();
 	private final AsynchronousServerSocketChannel serverChannel;
-	private final InstrumentationHelper instrumentationHelper;
+	private final InstrumentationHelper instrumentation;
+	private final ByteBufferAllocator allocator;
 
 	/**
 	 * @param instrumentation
 	 * 		Instrumentation instance.
-	 * @param port
-	 * 		Port to run on.
+	 * @param serverChannel
+	 * 		Channel to operate on.
+	 * @param allocator
+	 * 		Allocator instance to pass to {@link #clients client channels}.
+	 */
+	private Server(Instrumentation instrumentation, AsynchronousServerSocketChannel serverChannel,
+				   ByteBufferAllocator allocator) {
+		this.instrumentation = new InstrumentationHelper(instrumentation);
+		this.serverChannel = serverChannel;
+		this.allocator = allocator;
+	}
+
+	/**
+	 * @param instrumentation
+	 * 		Instrumentation instance.
+	 * @param address
+	 * 		Address to bind to.
+	 * @param allocator
+	 * 		Allocator instance to pass to {@link #clients client channels}.
+	 *
+	 * @return New server instance.
 	 *
 	 * @throws IOException
-	 * 		When the {@link AsynchronousServerSocketChannel} cannot be opened.
+	 * 		When the {@link AsynchronousServerSocketChannel} cannot be opened on the given address.
 	 */
-	public Server(Instrumentation instrumentation, int port) throws IOException {
-		instrumentationHelper = new InstrumentationHelper(instrumentation);
-		serverChannel = AsynchronousServerSocketChannel.open();
-		serverChannel.bind(new InetSocketAddress("localhost", port));
+	public static Server open(Instrumentation instrumentation, InetSocketAddress address,
+							  ByteBufferAllocator allocator) throws IOException {
+		Logger.info("Opening server on: " + address);
+		AsynchronousServerSocketChannel ch = AsynchronousServerSocketChannel.open().bind(address);
+		Server server = new Server(instrumentation, ch, allocator);
+		server.acceptLoop();
+		return server;
 	}
 
 	/**
-	 * Async accept new client, closing prior connection if any.
-	 *
-	 * @param handler
-	 * 		Callback on new client accept.
+	 * @return Wrapped instrumentation instance.
 	 */
-	public void acceptAsync(Consumer<AsynchronousSocketChannel> handler) {
-		serverChannel.accept(null, new CompletionHandler<AsynchronousSocketChannel, Object>() {
-			@Override
-			public void completed(AsynchronousSocketChannel result, Object attachment) {
-				// Handle new client
-				if (handler != null)
-					handler.accept(result);
-				onNewClient(result);
-			}
-
-			@Override
-			public void failed(Throwable ex, Object attachment) {
-				Logger.error("Accepting client encountered failure: " + ex);
-			}
-		});
+	public InstrumentationHelper getInstrumentation() {
+		return instrumentation;
 	}
 
 	/**
-	 * @param client
-	 * 		Newly connected client, from {@link #acceptAsync(Consumer)}
+	 * @return Active clients.
 	 */
-	private void onNewClient(AsynchronousSocketChannel client) {
-		// Update reference
-		clients.add(client);
-		// Subscribe to packet handling
-		if (client != null && client.isOpen()) {
-			loop(client);
-		} else {
-			Logger.error("Server received new client, but was not open!");
-		}
+	public Set<ChannelWrapper> getClients() {
+		return clients;
 	}
 
 	/**
-	 * @param clientChannel
-	 * 		Client to interact with.
+	 * @return {@code true} if server is no longer active.
 	 */
-	private void loop(AsynchronousSocketChannel clientChannel) {
-		ByteBuffer headerBuffer = ByteBuffer.allocate(CommandConstants.HEADER_SIZE);
-		while (true) {
-			// Wait for client command
-			Logger.debug("Server waiting for new client command");
-			try {
-				headerBuffer.clear();
-				Buffers.readFrom(clientChannel, headerBuffer)
-						.get(1, TimeUnit.DAYS);
-				Logger.info("Server received header");
-			} catch (InterruptedException e) {
-				Logger.error("Server interrupted while reading command header");
-				return;
-			} catch (ExecutionException ex) {
-				Logger.error("Server encountered error reading command header into headerBuffer: " + ex.getCause());
-				return;
-			} catch (TimeoutException e) {
-				e.printStackTrace();
-				return;
-			}
-			// Read header from headerBuffer
-			headerBuffer.position(0);
-			byte commandId = headerBuffer.get();
-			int commandLength = headerBuffer.getInt();
-			// Parse and handle command
-			AbstractCommand command = CommandFactory.create(commandId);
-			if (command == null) {
-				Logger.error("Server read from client, unknown command: " + commandId);
-			} else {
-				Logger.debug("Server read from client, command: " +
-						command.getClass().getSimpleName() + "[" + commandId + "]");
-				// Allocate new headerBuffer and read into it the remaining data
-				if (commandLength > 0) {
-					try {
-						ByteBuffer commandDataBuffer = ByteBuffer.allocate(commandLength);
-						Buffers.readFrom(clientChannel, commandDataBuffer)
-								.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-						command.read(commandDataBuffer);
-					} catch (InterruptedException e) {
-						Logger.error("Server interrupted while reading remaining command data");
-						return;
-					} catch (ExecutionException ex) {
-						Logger.error("Server encountered error reading remaining command data into buffer: " + ex.getCause());
-						return;
-					} catch (TimeoutException ex) {
-						Logger.error("Server timed out reading remaining command data");
-						return;
-					}
-				}
-				// Handle parsed command data.
-				try {
-					handleCommand(command, clientChannel);
-				} catch (InterruptedException e) {
-					Logger.error("Server interrupted while handling command");
-					return;
-				} catch (ExecutionException ex) {
-					Logger.error("Server encountered error handling command: " + ex.getCause());
-					return;
-				} catch (TimeoutException ex) {
-					Logger.error("Server timed out handling command");
-					return;
-				}
-			}
-			// Resubscribe this completion handler to handle the next client command.
-			// Unless the client is disconnecting of course.
-			if (commandId == CommandConstants.ID_COMMON_DISCONNECT) {
-				Logger.debug("Server handler closing for disconnecting client: " + clientChannel);
-			} else {
-				// Flip into read-mode, tell client we are done replying
-				Logger.debug("Server replying DONE to client");
-				// Resubscribe with our reply
-				try {
-					Buffers.writeTo(clientChannel, headerBuffer, CommandConstants.HEADER_DONE).get();
-					Logger.debug("Server replying complete");
-				} catch (InterruptedException e) {
-					Logger.error("Server interrupted while replying DONE");
-					return;
-				} catch (ExecutionException ex) {
-					Logger.error("Server encountered error replying DONE: " + ex.getCause());
-					return;
-				}
-			}
-		}
-	}
-
-	/**
-	 * @param command
-	 * 		Command to handle.
-	 * @param clientChannel
-	 * 		Channel the command is from.
-	 */
-	private void handleCommand(AbstractCommand command, AsynchronousSocketChannel clientChannel)
-			throws ExecutionException, InterruptedException, TimeoutException {
-		switch (command.key()) {
-			case CommandConstants.ID_COMMON_PING: {
-				// Send back pong
-				Logger.debug("Server replying PONG to PING");
-				Buffers.writeTo(clientChannel, new PongCommand().generate())
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-				break;
-			}
-			case CommandConstants.ID_COMMON_SHUTDOWN: {
-				// Close server
-				close();
-				break;
-			}
-			case CommandConstants.ID_CL_REQUEST_PROPERTIES: {
-				// Send back populated command
-				Logger.debug("Server replying with populated system properties");
-				PropertiesCommand propertiesCommand = (PropertiesCommand) command;
-				propertiesCommand.populateValue();
-				Buffers.writeTo(clientChannel, propertiesCommand.generate())
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-				break;
-			}
-			case CommandConstants.ID_CL_SET_PROPERTY: {
-				// Run the operation
-				SetPropertyCommand setPropertyCommand = (SetPropertyCommand) command;
-				Logger.debug("Server applying property: " + setPropertyCommand.getKey());
-				setPropertyCommand.assignValue();
-				break;
-			}
-			case CommandConstants.ID_CL_SET_FIELD: {
-				// Run the operation
-				SetFieldCommand setFieldCommand = (SetFieldCommand) command;
-				Logger.debug("Server applying field: " + setFieldCommand.getOwner() + "." + setFieldCommand.getName());
-				setFieldCommand.assignValue();
-				break;
-			}
-			case CommandConstants.ID_CL_GET_FIELD: {
-				// Send back populated command
-				GetFieldCommand getFieldCommand = (GetFieldCommand) command;
-				Logger.debug("Server getting field: " + getFieldCommand.getOwner() + "." + getFieldCommand.getName());
-				getFieldCommand.lookupValue();
-				Buffers.writeTo(clientChannel, getFieldCommand.generate())
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-				break;
-			}
-			case CommandConstants.ID_CL_LOADED_CLASSES: {
-				// Send back populated command
-				Logger.debug("Server replying with populated class names");
-				LoadedClassesCommand loadedClassesCommand = (LoadedClassesCommand) command;
-				// Only send 'new' classes to reduce sending duplicate data to client
-				loadedClassesCommand.setClassNames(instrumentationHelper.getNewClassNames());
-				Buffers.writeTo(clientChannel, loadedClassesCommand.generate())
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-				break;
-			}
-			case CommandConstants.ID_CL_GET_CLASS: {
-				// Send back populated command
-				Logger.debug("Server replying to class bytecode lookup");
-				GetClassCommand getClassCommand = (GetClassCommand) command;
-				getClassCommand.setCode(instrumentationHelper.getClassBytecode(getClassCommand.getName()));
-				Buffers.writeTo(clientChannel, getClassCommand.generate())
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-				break;
-			}
-			case CommandConstants.ID_CL_GET_CLASSLOADERS: {
-				// Send back populated command
-				Logger.debug("Server replying to classloaders lookup");
-				Set<GetClassLoadersCommand.LoaderInfo> items = new TreeSet<>();
-				for (ClassLoader loader : instrumentationHelper.getLoaders())
-					items.add(GetClassLoadersCommand.LoaderInfo.from(loader));
-				GetClassLoadersCommand getClassLoadersCommand = (GetClassLoadersCommand) command;
-				getClassLoadersCommand.setItems(items);
-				Buffers.writeTo(clientChannel, getClassLoadersCommand.generate())
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-				break;
-			}
-			case CommandConstants.ID_CL_CLASSLOADER_LOADED_CLASSES: {
-				// Send back populated command
-				Logger.debug("Server replying to classloader classes lookup");
-				ClassLoaderClassesCommand classLoaderClassesCommand = (ClassLoaderClassesCommand) command;
-				ClassLoader loader = instrumentationHelper.getClassLoader(classLoaderClassesCommand.getLoaderKey());
-				classLoaderClassesCommand.setClassNames(new TreeSet<>(instrumentationHelper.getLoaderClasses(loader)));
-				Buffers.writeTo(clientChannel, classLoaderClassesCommand.generate())
-						.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
-				break;
-			}
-			case CommandConstants.ID_CL_REDEFINE_CLASS: {
-				// Run the operation
-				RedefineClassCommand redefineClassCommand = (RedefineClassCommand) command;
-				Logger.debug("Server redefining class: " + redefineClassCommand.getName());
-				try {
-					instrumentationHelper.redefineClass(redefineClassCommand.getName(), redefineClassCommand.getCode());
-				} catch (UnmodifiableClassException e) {
-					Logger.debug("Server cannot redefine class: " + redefineClassCommand.getName());
-				} catch (ClassNotFoundException ex) {
-					Logger.debug("Server cannot find class: " + redefineClassCommand.getName() + " - " + ex);
-					ex.printStackTrace();
-				}
-				break;
-			}
-		}
+	public boolean isClosed() {
+		return closed.get();
 	}
 
 	/**
 	 * Closes the server.
 	 */
 	public void close() {
-		try {
-			Logger.debug("Server shutting down");
-			for (AsynchronousSocketChannel client : clients) {
-				closeClientChannel(client);
+		if (closed.compareAndSet(false, true)) {
+			Logger.debug("Closing client connections");
+			synchronized (clients) {
+				for (ChannelWrapper ch : clients) {
+					ch.close();
+				}
 			}
-			// Close server
-			if (serverChannel.isOpen())
+			try {
 				serverChannel.close();
-		} catch (Exception ex) {
-			Logger.error("Closing server could not complete: " + ex);
+			} catch (IOException ignored) {
+			}
+			Logger.info("Server closed");
+		} else {
+			Logger.debug("Server already closed");
 		}
 	}
 
 	/**
-	 * Closes connection to the client.
-	 *
-	 * @param clientChannel
-	 * 		Client to close.
+	 * Handles data loop for each new client connection.
 	 */
-	public void closeClientChannel(AsynchronousSocketChannel clientChannel) {
-		try {
-			clients.remove(clientChannel);
-			if (clientChannel != null && clientChannel.isOpen()) {
-				clientChannel.close();
+	private void acceptLoop() {
+		serverChannel.accept(null, new CompletionHandler<AsynchronousSocketChannel, Object>() {
+			@Override
+			public void completed(AsynchronousSocketChannel result, Object attachment) {
+				ServerChannelWrapper ch = new ServerChannelWrapper(result, allocator, Server.this);
+				synchronized (clients) {
+					clients.add(ch);
+				}
+				acceptLoop();
 			}
-		} catch (Exception ex) {
-			Logger.error("Closing server could not complete: " + ex);
-		}
+
+			@Override
+			public void failed(Throwable ex, Object attachment) {
+				Logger.error("Server accept-loop failure: " + ex);
+				close();
+			}
+		});
 	}
 }

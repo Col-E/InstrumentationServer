@@ -1,5 +1,8 @@
 package software.coley.instrument;
 
+import software.coley.instrument.data.ClassData;
+import software.coley.instrument.data.ClassLoaderInfo;
+import software.coley.instrument.data.ServerClassLoaderInfo;
 import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.Streams;
 
@@ -9,144 +12,47 @@ import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
+import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.jar.JarFile;
 
 /**
  * Wrapper around {@link Instrumentation} and {@link ClassFileTransformer}.
  *
  * @author Matt Coley
+ * @author xxDark
  */
-public class InstrumentationHelper implements ClassFileTransformer {
-	private final Instrumentation instrumentation;
-	private final Map<ClassLoader, Set<String>> loaderToClasses = new IdentityHashMap<>();
-	private final Map<String, ClassLoader> classesToLoader = new HashMap<>();
+public final class InstrumentationHelper implements Instrumentation, ClassFileTransformer {
+	private static final ClassLoader SCL = ClassLoader.getSystemClassLoader();
+	private static final Method CLASS_LOADER_NAME;
+	// ClassLoader collections
+	private final Map<Integer, ServerClassLoaderInfo> loaders = new HashMap<>();
+	private final Map<Integer, Set<String>> loaderToClasses = new HashMap<>();
+	private final Map<String, ServerClassLoaderInfo> classesToLoader = new HashMap<>();
+	// Classes collections
 	private final Map<String, byte[]> classesToCode = new HashMap<>();
 	private final Map<String, Class<?>> classesToRef = new HashMap<>();
 	private final SortedSet<String> sortedClassNames = new TreeSet<>();
 	private final Set<String> newClassNames = new HashSet<>();
+	// Instrumentation
+	private final Lock lock = new ReentrantLock();
+	private final Instrumentation instrumentation;
 
 	public InstrumentationHelper(Instrumentation instrumentation) {
 		this.instrumentation = instrumentation;
-		if (instrumentation != null) {
+		// Can be null for test purposes
+		if (instrumentation != null)
 			instrumentation.addTransformer(this, true);
-			populateExisting();
-		}
 	}
 
 	@Override
-	public byte[] transform(ClassLoader loader, String name, Class<?> cls, ProtectionDomain domain, byte[] code) {
-		recordClass(loader, name, cls, code);
-		return code;
-	}
-
-	/**
-	 * @return New class names since the last time this method was called.
-	 */
-	public SortedSet<String> getNewClassNames() {
-		TreeSet<String> set = new TreeSet<>(newClassNames);
-		newClassNames.clear();
-		return set;
-	}
-
-	/**
-	 * @return All class names.
-	 */
-	public Set<String> getAllClasses() {
-		return sortedClassNames;
-	}
-
-	/**
-	 * @return All loaders.
-	 * Do note, one will be {@code null} for the bootstrap classloader.
-	 */
-	public Set<ClassLoader> getLoaders() {
-		return loaderToClasses.keySet();
-	}
-
-	/**
-	 * @param className
-	 * 		Name of class.
-	 *
-	 * @return Containing classloader.
-	 * May be {@code null} for bootstrap classloader.
-	 */
-	public ClassLoader getLoaderOfClass(String className) {
-		return classesToLoader.get(className);
-	}
-
-	/**
-	 * @param loaderKey
-	 * 		Loader hash.
-	 *
-	 * @return Matching loader.
-	 */
-	public ClassLoader getClassLoader(int loaderKey) {
-		if (loaderKey == 0)
-			return null;
-		for (ClassLoader loader : getLoaders())
-			if (loader.hashCode() == loaderKey)
-				return loader;
-		return null;
-	}
-
-	/**
-	 * @param loader
-	 * 		Loader instance.
-	 *
-	 * @return All class names the loader is responsible for.
-	 */
-	public Set<String> getLoaderClasses(ClassLoader loader) {
-		return loaderToClasses.getOrDefault(loader, Collections.emptySet());
-	}
-
-	/**
-	 * @param className
-	 * 		Name of class.
-	 *
-	 * @return Bytecode of class.
-	 */
-	public byte[] getClassBytecode(String className) {
-		return classesToCode.get(className);
-	}
-
-	/**
-	 * Redefine the given class.
-	 *
-	 * @param className
-	 * 		Name of class.
-	 * @param code
-	 * 		Bytecode to use for redefinition.
-	 *
-	 * @throws UnmodifiableClassException
-	 * 		When the class is not modifiable.
-	 * @throws ClassNotFoundException
-	 * 		When the class is not found.
-	 */
-	public void redefineClass(String className, byte[] code) throws UnmodifiableClassException, ClassNotFoundException {
-		Class<?> ref = getClassRef(className);
-		ClassDefinition def = new ClassDefinition(ref, code);
-		instrumentation.redefineClasses(def);
-		classesToCode.put(className, code);
-	}
-
-	/**
-	 * @param className
-	 * 		Internal class name.
-	 *
-	 * @return Reference of class.
-	 *
-	 * @throws ClassNotFoundException
-	 * 		When class is not found.
-	 */
-	private Class<?> getClassRef(String className) throws ClassNotFoundException {
-		Class<?> ref = classesToRef.get(className);
-		if (ref == null) {
-			// Populate ref if available.
-			ref = Class.forName(className.replace('/', '.'), false, classesToLoader.get(className));
-			classesToRef.put(className, ref);
-		}
-		return ref;
+	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
+							ProtectionDomain protectionDomain, byte[] classfileBuffer) {
+		recordClass(loader, className, classBeingRedefined, classfileBuffer);
+		return classfileBuffer;
 	}
 
 	/**
@@ -165,8 +71,13 @@ public class InstrumentationHelper implements ClassFileTransformer {
 	private void recordClass(ClassLoader loader, String className, Class<?> ref, byte[] code) {
 		if (className == null)
 			return;
-		classesToLoader.put(className, loader);
-		loaderToClasses.computeIfAbsent(loader, l -> new HashSet<>()).add(className);
+		// ClassLoader items
+		ServerClassLoaderInfo loaderInfo = getInfoForClassLoader(loader);
+		int loaderId = loaderInfo.getId();
+		classesToLoader.put(className, loaderInfo);
+		loaderToClasses.computeIfAbsent(loaderId, l -> new HashSet<>()).add(className);
+		loaders.putIfAbsent(loaderId, loaderInfo);
+		// Class items
 		classesToCode.put(className, code);
 		sortedClassNames.add(className);
 		newClassNames.add(className);
@@ -193,5 +104,265 @@ public class InstrumentationHelper implements ClassFileTransformer {
 				}
 			}
 		}
+	}
+
+	/**
+	 * @return New class names since the last time this method was called.
+	 */
+	public SortedSet<String> getNewClassNames() {
+		TreeSet<String> set = new TreeSet<>(newClassNames);
+		newClassNames.clear();
+		return set;
+	}
+
+	/**
+	 * @return All class names.
+	 */
+	public Set<String> getAllClasses() {
+		return sortedClassNames;
+	}
+
+	/**
+	 * @return All loaders.
+	 */
+	public Collection<ServerClassLoaderInfo> getLoaders() {
+		return loaders.values();
+	}
+
+	/**
+	 * @param className
+	 * 		Name of class.
+	 *
+	 * @return Containing classloader.
+	 */
+	public ServerClassLoaderInfo getLoaderOfClass(String className) {
+		return classesToLoader.get(className);
+	}
+
+	/**
+	 * @param loaderKey
+	 * 		Loader hash.
+	 *
+	 * @return Matching loader.
+	 */
+	public ServerClassLoaderInfo getClassLoader(int loaderKey) {
+		lock.lock();
+		try {
+			if (loaderKey == 0)
+				return null;
+			for (ServerClassLoaderInfo loader : getLoaders())
+				if (loader.hashCode() == loaderKey)
+					return loader;
+			return null;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
+	 * @param loaderId
+	 * 		Loader id.
+	 *
+	 * @return All class names the classloader is responsible for.
+	 */
+	public Set<String> getLoaderClasses(int loaderId) {
+		return loaderToClasses.getOrDefault(loaderId, Collections.emptySet());
+	}
+
+	/**
+	 * @param className
+	 * 		Name of class.
+	 *
+	 * @return Bytecode of class.
+	 */
+	public byte[] getClassBytecode(String className) {
+		return classesToCode.get(className);
+	}
+
+	/**
+	 * @param name
+	 * 		Name of class.
+	 *
+	 * @return Class data, containing classloader info and bytecode.
+	 */
+	public ClassData getClassData(String name) {
+		int loaderId = getLoaderOfClass(name).getId();
+		byte[] code = getClassBytecode(name);
+		return new ClassData(name, loaderId, code);
+	}
+
+	/**
+	 * Redefine the given class.
+	 *
+	 * @param className
+	 * 		Name of class.
+	 * @param code
+	 * 		Bytecode to use for redefinition.
+	 *
+	 * @throws UnmodifiableClassException
+	 * 		When the class is not modifiable.
+	 * @throws ClassNotFoundException
+	 * 		When the class is not found.
+	 */
+	public void redefineClass(String className, byte[] code) throws UnmodifiableClassException, ClassNotFoundException {
+		Class<?> ref = getClassRef(className);
+		ClassDefinition def = new ClassDefinition(ref, code);
+		redefineClasses(def);
+		classesToCode.put(className, code);
+	}
+
+	/**
+	 * @param className
+	 * 		Internal class name.
+	 *
+	 * @return Reference of class.
+	 *
+	 * @throws ClassNotFoundException
+	 * 		When class is not found.
+	 */
+	private Class<?> getClassRef(String className) throws ClassNotFoundException {
+		Class<?> ref = classesToRef.get(className);
+		if (ref == null) {
+			// Populate ref if available.
+			ref = Class.forName(className.replace('/', '.'), false, classesToLoader.get(className).getClassLoader());
+			classesToRef.put(className, ref);
+		}
+		return ref;
+	}
+
+	/**
+	 * Acquire lock.
+	 */
+	public void lock() {
+		lock.lock();
+	}
+
+	/**
+	 * Release lock.
+	 */
+	public void unlock() {
+		lock.unlock();
+	}
+
+	@Override
+	public void addTransformer(ClassFileTransformer transformer, boolean canRetransform) {
+		instrumentation.addTransformer(transformer, canRetransform);
+	}
+
+	@Override
+	public void addTransformer(ClassFileTransformer transformer) {
+		instrumentation.addTransformer(transformer);
+	}
+
+	@Override
+	public boolean removeTransformer(ClassFileTransformer transformer) {
+		return instrumentation.removeTransformer(transformer);
+	}
+
+	@Override
+	public boolean isRetransformClassesSupported() {
+		return instrumentation.isRetransformClassesSupported();
+	}
+
+	@Override
+	public void retransformClasses(Class<?>... classes) throws UnmodifiableClassException {
+		instrumentation.retransformClasses(classes);
+	}
+
+	@Override
+	public boolean isRedefineClassesSupported() {
+		return instrumentation.isRedefineClassesSupported();
+	}
+
+	@Override
+	public void redefineClasses(ClassDefinition... definitions) throws ClassNotFoundException, UnmodifiableClassException {
+		instrumentation.redefineClasses(definitions);
+	}
+
+	@Override
+	public boolean isModifiableClass(Class<?> theClass) {
+		return instrumentation.isModifiableClass(theClass);
+	}
+
+	@Override
+	public Class<?>[] getAllLoadedClasses() {
+		return instrumentation.getAllLoadedClasses();
+	}
+
+	@Override
+	public Class<?>[] getInitiatedClasses(ClassLoader loader) {
+		return instrumentation.getInitiatedClasses(loader);
+	}
+
+	@Override
+	public long getObjectSize(Object objectToSize) {
+		return instrumentation.getObjectSize(objectToSize);
+	}
+
+	@Override
+	public void appendToBootstrapClassLoaderSearch(JarFile jarfile) {
+		instrumentation.appendToBootstrapClassLoaderSearch(jarfile);
+	}
+
+	@Override
+	public void appendToSystemClassLoaderSearch(JarFile jarfile) {
+		instrumentation.appendToSystemClassLoaderSearch(jarfile);
+	}
+
+	@Override
+	public boolean isNativeMethodPrefixSupported() {
+		return instrumentation.isNativeMethodPrefixSupported();
+	}
+
+	@Override
+	public void setNativeMethodPrefix(ClassFileTransformer transformer, String prefix) {
+		instrumentation.setNativeMethodPrefix(transformer, prefix);
+	}
+
+	private static ServerClassLoaderInfo getInfoForClassLoader(ClassLoader loader) {
+		String name;
+		int id;
+		if (loader == null) {
+			name = "Bootstrap ClassLoader";
+			id = 0;
+		} else if (loader == SCL){
+			name = "System ClassLoader";
+			id = 1;
+		}else {
+			name = lookupClassLoaderName(loader);
+			id = loader.hashCode();
+		}
+		return new ServerClassLoaderInfo(loader, id, name);
+	}
+
+	private static String lookupClassLoaderName(ClassLoader loader) {
+		Method m = CLASS_LOADER_NAME;
+		if (m != null) {
+			try {
+				String name = (String) m.invoke(loader);
+				if (name != null)
+					return name;
+			} catch (ReflectiveOperationException ex) {
+				throw new IllegalStateException("Could not get class loader name", ex);
+			}
+		}
+		if (loader == SCL) {
+			return "Application ClassLoader";
+		} else if (loader == SCL.getParent()) {
+			return "Ext ClassLoader";
+		}
+		return loader.toString();
+	}
+
+	static {
+		Method getClassLoaderName;
+		try {
+			// Added in Java 9
+			getClassLoaderName = ClassLoader.class.getMethod("getName");
+			getClassLoaderName.setAccessible(true);
+		} catch (NoSuchMethodException ignored) {
+			getClassLoaderName = null;
+		}
+		CLASS_LOADER_NAME = getClassLoaderName;
 	}
 }
