@@ -15,22 +15,41 @@ import java.nio.charset.StandardCharsets;
 public final class ByteBufferDataOutput implements DataOutput {
 	private final ByteBufferSanitizer sanitizer;
 
+	/**
+	 * @param sanitizer
+	 * 		Output buffer.
+	 */
 	public ByteBufferDataOutput(ByteBufferSanitizer sanitizer) {
 		this.sanitizer = sanitizer;
 	}
 
+	/**
+	 * @param alloc
+	 * 		Buffer allocator.
+	 */
 	public ByteBufferDataOutput(ByteBufferAllocator alloc) {
 		this(new ByteBufferSanitizer(alloc));
 	}
 
+	/**
+	 * @return Underlying buffer.
+	 */
 	public ByteBuffer getBuffer() {
 		return sanitizer.getBuffer();
 	}
 
+	/**
+	 * Clears position, mark and limit of the underlying buffer.
+	 *
+	 * @see ByteBuffer#clear()
+	 */
 	public void reset() {
 		sanitizer.clear();
 	}
 
+	/**
+	 * @return Consumed buffer.
+	 */
 	public ByteBuffer consume() {
 		return sanitizer.consume();
 	}
@@ -47,8 +66,7 @@ public final class ByteBufferDataOutput implements DataOutput {
 
 	@Override
 	public void write(byte[] b, int off, int len) {
-		if ((off | len | (off + len) | (b.length - (off + len))) < 0)
-			throw new IndexOutOfBoundsException();
+		if ((off | len | (off + len) | (b.length - (off + len))) < 0) throw new IndexOutOfBoundsException();
 		buffer(len).put(b, off, len);
 	}
 
@@ -114,8 +132,26 @@ public final class ByteBufferDataOutput implements DataOutput {
 
 	@Override
 	public void writeUTF(String s) {
-		writeInt(s.length());
-		writeChars(s);
+		CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
+		CharBuffer cb = CharBuffer.wrap(s);
+		ByteBuffer buffer = buffer(4);
+		int position = buffer.position();
+		buffer.putInt(-1);
+		while (true) {
+			CoderResult result = encoder.encode(cb, buffer, true);
+			if (result.isUnderflow()) {
+				if (cb.hasRemaining()) {
+					throw new IllegalStateException("Buffer must have no data left");
+				}
+				int newPosition = buffer.position();
+				buffer.putInt(position, newPosition - position - 4);
+				break;
+			} else if (result.isOverflow()) {
+				buffer = buffer(256);
+				continue;
+			}
+			throw new IllegalStateException("Unexpected coder result: " + result);
+		}
 	}
 
 	private ByteBuffer buffer(int size) {

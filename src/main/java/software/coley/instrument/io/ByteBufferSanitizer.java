@@ -12,18 +12,36 @@ public final class ByteBufferSanitizer {
 	private final ByteBufferAllocator allocator;
 	private ByteBuffer buffer = EMPTY;
 
+	/**
+	 * @param allocator
+	 *        {@link ByteBuffer} allocator.
+	 */
 	public ByteBufferSanitizer(ByteBufferAllocator allocator) {
 		this.allocator = allocator;
 	}
 
+	/**
+	 * @return Underlying buffer.
+	 */
 	public ByteBuffer getBuffer() {
 		return buffer;
 	}
 
+	/**
+	 * Clears underlying buffer.
+	 *
+	 * @see ByteBuffer#clear()
+	 */
 	public void clear() {
 		buffer.clear();
 	}
 
+	/**
+	 * Consumes the buffer, sets its position to {@literal 0},
+	 * and limits it to the amount of bytes written.
+	 *
+	 * @return Resulting buffer.
+	 */
 	public ByteBuffer consume() {
 		ByteBuffer buffer = this.buffer;
 		int pos = buffer.position();
@@ -32,6 +50,15 @@ public final class ByteBufferSanitizer {
 		return buffer;
 	}
 
+	/**
+	 * Ensures that {@literal size} amount
+	 * of bytes can be written to the underlying buffer.
+	 *
+	 * @param size
+	 * 		The amount of bytes needed to be written.
+	 *
+	 * @return Underlying buffer, with enough room to fit the data.
+	 */
 	public ByteBuffer ensureWriteable(int size) {
 		ByteBuffer buffer = this.buffer;
 		if (buffer.remaining() < size) {
