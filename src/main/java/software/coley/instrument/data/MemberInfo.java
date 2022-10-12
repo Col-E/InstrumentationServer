@@ -11,7 +11,10 @@ import java.util.Objects;
  */
 public class MemberInfo {
 	public static final StructureCodec<MemberInfo> CODEC =
-			StructureCodec.compose(input -> new MemberInfo(input.readUTF(), input.readUTF(), input.readUTF()),
+			StructureCodec.compose(input -> new MemberInfo(
+							input.readUTF(),
+							input.readUTF(),
+							input.readUTF()),
 					(output, value) -> {
 						output.writeUTF(value.getOwner());
 						output.writeUTF(value.getName());

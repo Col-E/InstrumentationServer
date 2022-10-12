@@ -20,7 +20,7 @@ import static software.coley.instrument.util.DescUtil.isPrimitiveName;
 public class RequestFieldGetCommand extends AbstractCommand {
 	public static final StructureCodec<RequestFieldGetCommand> CODEC =
 			StructureCodec.compose(input -> new RequestFieldGetCommand(MemberInfo.CODEC.decode(input)),
-					((output, value) -> MemberInfo.CODEC.encode(output, value.getMemberInfo())));
+					    ((output, value) -> MemberInfo.CODEC.encode(output, value.getMemberInfo())));
 	private final MemberInfo memberInfo;
 
 	/**
@@ -37,7 +37,6 @@ public class RequestFieldGetCommand extends AbstractCommand {
 	public MemberInfo getMemberInfo() {
 		return memberInfo;
 	}
-
 
 	/**
 	 * @return Text representation of field value.

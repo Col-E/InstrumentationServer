@@ -11,7 +11,6 @@ import software.coley.instrument.util.Logger;
 import java.nio.channels.AsynchronousByteChannel;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -50,10 +49,11 @@ public final class ServerChannelWrapper extends ChannelWrapper {
 	 */
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	private void readLoop() {
-		read().thenCompose(t -> {
-			Logger.debug("Channel read completion: " + t);
-			CommandHandler handler = handlerMap.get(t.getClass());
-			return handler.accept(t);
+		read().thenCompose(readResult -> {
+			Object value = readResult.getValue();
+			Logger.debug("Channel read[id=" + readResult.getFrameId() + "] completion: " + value);
+			CommandHandler handler = handlerMap.get(value.getClass());
+			return handler.accept(readResult).getFuture();
 		}).thenRun(this::readLoop);
 	}
 
@@ -104,11 +104,11 @@ public final class ServerChannelWrapper extends ChannelWrapper {
 	}
 
 	private <T> void answer(Class<T> type, Function<? super T, ?> fn) {
-		addHandler(type, k -> write(fn.apply(k)));
+		addHandler(type, readResult -> write(fn.apply(readResult.getValue()), readResult.getFrameId()));
 	}
 
 	private <T> void answer(Class<T> type, Supplier<?> fn) {
-		addHandler(type, k -> write(fn.get()));
+		addHandler(type, readResult -> write(fn.get(), readResult.getFrameId()));
 	}
 
 	private <T> void addHandler(Class<T> type, CommandHandler<T> handler) {
@@ -116,6 +116,6 @@ public final class ServerChannelWrapper extends ChannelWrapper {
 	}
 
 	private interface CommandHandler<T> {
-		CompletableFuture<Void> accept(T command);
+		WriteResult accept(ReadResult<T> command);
 	}
 }

@@ -40,8 +40,8 @@ public class LocalTest {
 		}
 
 		// Properties lookup
-		client.sendBlocking(new RequestPropertiesCommand(), reply -> {
-			Map<String, String> results = ((ReplyPropertiesCommand) reply).mapValue();
+		client.sendBlocking(new RequestPropertiesCommand(), (ReplyPropertiesCommand reply) -> {
+			Map<String, String> results = reply.mapValue();
 			assertNotNull(results);
 		});
 

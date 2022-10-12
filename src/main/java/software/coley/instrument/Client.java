@@ -4,6 +4,8 @@ import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.command.CommandConstants;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.sock.ClientChannelWrapper;
+import software.coley.instrument.sock.ReplyResult;
+import software.coley.instrument.sock.WriteResult;
 import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
@@ -68,8 +70,8 @@ public class Client {
 	 *
 	 * @return Write completion.
 	 */
-	public CompletableFuture<Void> sendAsync(AbstractCommand command) {
-		return clientChannel.write(command);
+	public WriteResult sendAsync(AbstractCommand command) {
+		return clientChannel.write(command, clientChannel.getNextFrameId());
 	}
 
 	/**
@@ -78,13 +80,21 @@ public class Client {
 	 * @param replyHandler
 	 * 		Handler for replied packets.
 	 *
-	 * @return Reply completion.
+	 * @return Reply result.
 	 */
-	public CompletableFuture<Void> sendAsync(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
-		return sendAsync(command).thenRun(() -> {
-			CompletableFuture<AbstractCommand> replyFuture = clientChannel.read();
-			replyFuture.thenAccept(replyHandler);
+	public ReplyResult sendAsync(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
+		CompletableFuture<Object> replyFuture = new CompletableFuture<>();
+		int frameId = clientChannel.getNextFrameId();
+		clientChannel.setResponseListener(frameId, value -> {
+			try {
+				replyHandler.accept((AbstractCommand) value);
+				replyFuture.complete(value);
+			} catch (Exception ex) {
+				replyFuture.completeExceptionally(ex);
+			}
 		});
+		WriteResult writeResult = clientChannel.write(command, frameId);
+		return new ReplyResult(writeResult, replyFuture);
 	}
 
 	/**
@@ -94,7 +104,7 @@ public class Client {
 	public synchronized void sendBlocking(AbstractCommand command) {
 		String title = "sending command (without reply expected)";
 		try {
-			sendAsync(command).get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			sendAsync(command).getFuture().get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Logger.error("Client interrupted while " + title);
 			close();
@@ -117,7 +127,7 @@ public class Client {
 	public synchronized <R extends AbstractCommand> void sendBlocking(AbstractCommand command, Consumer<R> replyHandler) {
 		String title = "sending command (reply expected)";
 		try {
-			sendAsync(command, (Consumer<AbstractCommand>) replyHandler)
+			sendAsync(command, (Consumer<AbstractCommand>) replyHandler).getReplyFuture()
 					.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Logger.error("Client interrupted while " + title);

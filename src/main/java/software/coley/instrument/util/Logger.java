@@ -50,6 +50,6 @@ public class Logger {
 	}
 
 	private static String fmt(String message) {
-		return message;
+		return String.format("%-12s " + message, "[" + Thread.currentThread().getName() + "]");
 	}
 }
