@@ -106,7 +106,7 @@ public class LiveTest {
 			Thread.sleep(2000);
 
 			// Request loaded class names in the system classloader
-			client.sendBlocking(new RequestClassloaderClassesCommand(1), (ReplyClassloaderClassesCommand reply) -> {
+			client.sendBlocking(new RequestClassloaderClassesCommand(ApiConstants.SYSTEM_CLASSLOADER_ID), (ReplyClassloaderClassesCommand reply) -> {
 				System.out.println("There are " + reply.getClasses().size() + " total classes in the SCL");
 			});
 		} finally {

@@ -82,13 +82,14 @@ public class Client {
 	 *
 	 * @return Reply result.
 	 */
-	public ReplyResult sendAsync(AbstractCommand command, Consumer<AbstractCommand> replyHandler) {
+	@SuppressWarnings("unchecked")
+	public <R extends AbstractCommand> ReplyResult sendAsync(AbstractCommand command, Consumer<R> replyHandler) {
 		CompletableFuture<Object> replyFuture = new CompletableFuture<>();
 		int frameId = clientChannel.getNextFrameId();
 		clientChannel.setResponseListener(frameId, value -> {
 			try {
 				if (replyHandler != null)
-					replyHandler.accept((AbstractCommand) value);
+					replyHandler.accept((R) value);
 				replyFuture.complete(value);
 			} catch (Exception ex) {
 				replyFuture.completeExceptionally(ex);

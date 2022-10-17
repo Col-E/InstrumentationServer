@@ -146,7 +146,7 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	public ServerClassLoaderInfo getClassLoader(int loaderKey) {
 		lock.lock();
 		try {
-			if (loaderKey == 0)
+			if (loaderKey == ApiConstants.BOOTSTRAP_CLASSLOADER_ID)
 				return null;
 			for (ServerClassLoaderInfo loader : getLoaders())
 				if (loader.hashCode() == loaderKey)
@@ -255,10 +255,10 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 		int id;
 		if (loader == null) {
 			name = "Bootstrap ClassLoader";
-			id = 0;
+			id = ApiConstants.BOOTSTRAP_CLASSLOADER_ID;
 		} else if (loader == SCL) {
 			name = "System ClassLoader";
-			id = 1;
+			id = ApiConstants.SYSTEM_CLASSLOADER_ID;
 		} else {
 			name = lookupClassLoaderName(loader);
 			id = loader.hashCode();
