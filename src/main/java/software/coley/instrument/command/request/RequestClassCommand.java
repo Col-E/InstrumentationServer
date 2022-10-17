@@ -10,16 +10,30 @@ import software.coley.instrument.io.codec.StructureCodec;
  */
 public class RequestClassCommand extends AbstractCommand {
 	public static final StructureCodec<RequestClassCommand> CODEC =
-			StructureCodec.compose(input -> new RequestClassCommand(input.readUTF()),
-					(output, value) -> output.writeUTF(value.getName()));
+			StructureCodec.compose(input -> new RequestClassCommand(input.readInt(), input.readUTF()),
+					(output, value) -> {
+						output.writeInt(value.getLoaderId());
+						output.writeUTF(value.getName());
+					});
+	private final int loaderId;
 	private final String name;
 
 	/**
+	 * @param loaderId
+	 * 		Classloader id.
 	 * @param name
 	 * 		Class name.
 	 */
-	public RequestClassCommand(String name) {
+	public RequestClassCommand(int loaderId, String name) {
+		this.loaderId = loaderId;
 		this.name = name;
+	}
+
+	/**
+	 * @return Classloader id.
+	 */
+	public int getLoaderId() {
+		return loaderId;
 	}
 
 	/**

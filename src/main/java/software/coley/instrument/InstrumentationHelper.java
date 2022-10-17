@@ -159,7 +159,7 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 
 	/**
 	 * @param loaderId
-	 * 		Loader id.
+	 * 		Classloader id.
 	 *
 	 * @return All class names the classloader is responsible for.
 	 */
@@ -178,13 +178,14 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	}
 
 	/**
+	 * @param loaderId
+	 * 		Classloader id.
 	 * @param name
 	 * 		Name of class.
 	 *
 	 * @return Class data, containing classloader info and bytecode.
 	 */
-	public ClassData getClassData(String name) {
-		int loaderId = getLoaderOfClass(name).getId();
+	public ClassData getClassData(int loaderId, String name) {
 		byte[] code = getClassBytecode(name);
 		return new ClassData(name, loaderId, code);
 	}

@@ -73,7 +73,8 @@ public final class ServerChannelWrapper extends ChannelWrapper {
 			int loaderId = req.getLoaderId();
 			return new ReplyClassloaderClassesCommand(loaderId, inst.getLoaderClasses(loaderId));
 		});
-		answer(RequestClassCommand.class, req -> new ReplyClassCommand(inst.getClassData(req.getName())));
+		answer(RequestClassCommand.class, req ->
+				new ReplyClassCommand(inst.getClassData(req.getLoaderId(), req.getName())));
 		answer(RequestRedefineCommand.class, req -> {
 			inst.lock();
 			try {
