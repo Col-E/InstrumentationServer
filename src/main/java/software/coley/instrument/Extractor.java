@@ -60,7 +60,18 @@ public class Extractor {
 				}
 			}
 		} else {
-			throw new IOException("Expected running context to be from jar file");
+			Files.walk(selfPath)
+					.filter(path -> !Files.isDirectory(path) && path.toString().endsWith(".class"))
+					.forEach(path -> {
+						String localName = selfPath.relativize(path).toString().replace('\\', '/');
+						if (localName.startsWith(prefix)) {
+							try {
+								list.add(new Item(localName, Files.readAllBytes(path)));
+							} catch (IOException ex) {
+								throw new RuntimeException("Could not read class: " + localName, ex);
+							}
+						}
+					});
 		}
 		return list;
 	}

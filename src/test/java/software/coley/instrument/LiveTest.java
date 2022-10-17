@@ -40,15 +40,13 @@ public class LiveTest {
 		// Create server jar from the latest compilation
 		try {
 			Path target = Paths.get("target");
-			Path classes = target.resolve("classes");
 			agentJarPath = target.resolve("instrumentation-server-SNAPSHOT.jar");
 			Files.deleteIfExists(agentJarPath);
-			pack(classes, agentJarPath);
+			Extractor.extractToPath(agentJarPath);
 		} catch (IOException ex) {
 			fail("Could not setup agent jar", ex);
 		}
 	}
-
 
 	@Test
 	@ResourceLock(SERVER) // Use this lock on other tests if they get split later
@@ -117,30 +115,6 @@ public class LiveTest {
 				start.destroyForcibly();
 			Thread.sleep(1000);
 			Files.deleteIfExists(agentJarPath);
-		}
-	}
-
-	private static void pack(Path source, Path target) throws IOException {
-		String agentClassName = Agent.class.getName();
-		Manifest manifest = new Manifest();
-		manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-		manifest.getMainAttributes().put(new Attributes.Name("Premain-Class"), agentClassName);
-		manifest.getMainAttributes().put(new Attributes.Name("Agent-Class"), agentClassName);
-		manifest.getMainAttributes().put(new Attributes.Name("Can-Redefine-Classes"), "true");
-		manifest.getMainAttributes().put(new Attributes.Name("Can-Retransform-Classes"), "true");
-		try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(target), manifest)) {
-			Files.walk(source)
-					.filter(path -> !Files.isDirectory(path) && path.toString().endsWith(".class"))
-					.forEach(path -> {
-						JarEntry jarEntry = new JarEntry(source.relativize(path).toString().replace('\\', '/'));
-						try {
-							jar.putNextEntry(jarEntry);
-							Files.copy(path, jar);
-							jar.closeEntry();
-						} catch (IOException ex) {
-							fail(ex);
-						}
-					});
 		}
 	}
 }
