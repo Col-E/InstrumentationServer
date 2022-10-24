@@ -1,6 +1,6 @@
 package software.coley.instrument.sock;
 
-import software.coley.instrument.command.CommandFactory;
+import software.coley.instrument.message.MessageFactory;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.io.ByteBufferDataInput;
 import software.coley.instrument.io.ByteBufferDataOutput;
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Matt Coley
  */
 public class ChannelWrapper {
-	private final CommandFactory factory = CommandFactory.create();
+	private final MessageFactory factory = MessageFactory.create();
 	private final AtomicBoolean closed = new AtomicBoolean();
 	private final AtomicInteger nextFrameId = new AtomicInteger(0);
 	private final AsynchronousByteChannel channel;
@@ -61,7 +61,7 @@ public class ChannelWrapper {
 	/**
 	 * @param value
 	 * 		Value to write.
-	 * 		The {@code class} type of the value must be recognized by the {@link CommandFactory}
+	 * 		The {@code class} type of the value must be recognized by the {@link MessageFactory}
 	 *
 	 * @return Future of write completion.
 	 */

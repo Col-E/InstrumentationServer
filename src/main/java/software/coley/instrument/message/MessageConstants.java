@@ -1,11 +1,11 @@
-package software.coley.instrument.command;
+package software.coley.instrument.message;
 
 /**
- * Constants for commands.
+ * Constants for messages.
  *
  * @author Matt Coley
  */
-public interface CommandConstants {
+public interface MessageConstants {
 	// request
 	int ID_REQ_PING= 100;
 	int ID_REQ_PROPERTIES = 101;

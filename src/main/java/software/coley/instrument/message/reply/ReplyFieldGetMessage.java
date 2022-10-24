@@ -1,19 +1,18 @@
-package software.coley.instrument.command.reply;
+package software.coley.instrument.message.reply;
 
-import software.coley.instrument.command.AbstractCommand;
-import software.coley.instrument.command.request.RequestFieldGetCommand;
 import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.request.RequestFieldGetMessage;
 
 /**
- * Command response to {@link RequestFieldGetCommand} containing the
+ * Message response to {@link RequestFieldGetMessage} containing the
  * {@link Object#toString()} of the field value.
  *
  * @author Matt Coley
  */
-public class ReplyFieldGetCommand extends AbstractCommand {
-	public static final StructureCodec<ReplyFieldGetCommand> CODEC =
-			StructureCodec.compose(input -> new ReplyFieldGetCommand(MemberData.CODEC.decode(input), input.readUTF()),
+public class ReplyFieldGetMessage extends AbstractReplyMessage {
+	public static final StructureCodec<ReplyFieldGetMessage> CODEC =
+			StructureCodec.compose(input -> new ReplyFieldGetMessage(MemberData.CODEC.decode(input), input.readUTF()),
 					((output, value) -> {
 						MemberData.CODEC.encode(output, value.getMemberInfo());
 						output.writeUTF(value.getValueText());
@@ -28,7 +27,7 @@ public class ReplyFieldGetCommand extends AbstractCommand {
 	 * @param valueText
 	 * 		Field value as a string.
 	 */
-	public ReplyFieldGetCommand(MemberData memberData, String valueText) {
+	public ReplyFieldGetMessage(MemberData memberData, String valueText) {
 		this.memberData = memberData;
 		this.valueText = valueText != null ? valueText : UNKNOWN_VALUE;
 	}
@@ -59,7 +58,7 @@ public class ReplyFieldGetCommand extends AbstractCommand {
 		String owner = memberData.getOwner();
 		String name = memberData.getName();
 		String desc = memberData.getDesc();
-		return "ReplyFieldGetCommand[" +
+		return "ReplyFieldGetMessage[" +
 				"owner='" + owner + '\'' +
 				", name='" + name + '\'' +
 				", desc='" + desc + '\'' +

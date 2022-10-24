@@ -1,17 +1,16 @@
-package software.coley.instrument.command.reply;
+package software.coley.instrument.message.reply;
 
-import software.coley.instrument.command.AbstractCommand;
-import software.coley.instrument.command.request.RequestFieldSetCommand;
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.request.RequestFieldSetMessage;
 
 /**
- * Command to acknowledge a {@link RequestFieldSetCommand} command.
+ * Message to acknowledge a {@link RequestFieldSetMessage} message.
  *
  * @author Matt Coley
  */
-public class ReplyFieldSetCommand extends AbstractCommand {
-	public static final StructureCodec<ReplyFieldSetCommand> CODEC =
-			StructureCodec.compose(input -> new ReplyFieldSetCommand(input.readUTF()),
+public class ReplyFieldSetMessage extends AbstractReplyMessage {
+	public static final StructureCodec<ReplyFieldSetMessage> CODEC =
+			StructureCodec.compose(input -> new ReplyFieldSetMessage(input.readUTF()),
 					(output, value) -> output.writeUTF(value.getMessage()));
 	public static final String MESSAGE_SUCCESS = ".";
 	private final String message;
@@ -20,7 +19,7 @@ public class ReplyFieldSetCommand extends AbstractCommand {
 	 * @param message
 	 * 		Field-set message.
 	 */
-	public ReplyFieldSetCommand(String message) {
+	public ReplyFieldSetMessage(String message) {
 		this.message = message;
 	}
 

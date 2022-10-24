@@ -1,6 +1,5 @@
-package software.coley.instrument.command.reply;
+package software.coley.instrument.message.reply;
 
-import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.io.codec.StructureCodec;
 
 import java.util.HashMap;
@@ -8,13 +7,13 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Command to reply with system {@link java.util.Properties}.
+ * Message to reply with system {@link java.util.Properties}.
  *
  * @author Matt Coley
  */
-public class ReplyPropertiesCommand extends AbstractCommand {
-	public static final StructureCodec<ReplyPropertiesCommand> CODEC =
-			StructureCodec.compose(input -> new ReplyPropertiesCommand(input.readUTF()),
+public class ReplyPropertiesMessage extends AbstractReplyMessage {
+	public static final StructureCodec<ReplyPropertiesMessage> CODEC =
+			StructureCodec.compose(input -> new ReplyPropertiesMessage(input.readUTF()),
 					(output, value) -> output.writeUTF(value.getProperties()));
 	private static final char SEPARATOR = '\u0000';
 	private final String properties;
@@ -23,7 +22,7 @@ public class ReplyPropertiesCommand extends AbstractCommand {
 	 * @param properties
 	 * 		System properties.
 	 */
-	public ReplyPropertiesCommand(Properties properties) {
+	public ReplyPropertiesMessage(Properties properties) {
 		this(encode(properties));
 	}
 
@@ -31,7 +30,7 @@ public class ReplyPropertiesCommand extends AbstractCommand {
 	 * @param properties
 	 * 		Encoded properties string.
 	 */
-	public ReplyPropertiesCommand(String properties) {
+	public ReplyPropertiesMessage(String properties) {
 		this.properties = properties;
 	}
 
@@ -62,9 +61,9 @@ public class ReplyPropertiesCommand extends AbstractCommand {
 	@Override
 	public String toString() {
 		if (properties == null)
-			return "ReplyPropertiesCommand[empty]";
+			return "ReplyPropertiesMessage[empty]";
 		int count = properties.length() - properties.replace(String.valueOf(SEPARATOR), "").length();
-		return "ReplyPropertiesCommand[" + count + "]";
+		return "ReplyPropertiesMessage[" + count + "]";
 	}
 
 	private static String encode(Properties properties) {

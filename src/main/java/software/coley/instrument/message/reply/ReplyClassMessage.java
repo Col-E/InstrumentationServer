@@ -1,22 +1,21 @@
-package software.coley.instrument.command.reply;
+package software.coley.instrument.message.reply;
 
-import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.data.ClassData;
 import software.coley.instrument.io.codec.StructureCodec;
 
 /**
- * Command to request bytecode of a class.
+ * Message to request bytecode of a class.
  *
  * @author Matt Coley
  */
-public class ReplyClassCommand extends AbstractCommand {
-	public static final StructureCodec<ReplyClassCommand> CODEC =
+public class ReplyClassMessage extends AbstractReplyMessage {
+	public static final StructureCodec<ReplyClassMessage> CODEC =
 			StructureCodec.compose(input -> {
 						boolean hasData = input.readBoolean();
 						if (hasData) {
-							return new ReplyClassCommand(ClassData.CODEC.decode(input));
+							return new ReplyClassMessage(ClassData.CODEC.decode(input));
 						} else {
-							return new ReplyClassCommand();
+							return new ReplyClassMessage();
 						}
 					},
 					(output, value) -> {
@@ -33,7 +32,7 @@ public class ReplyClassCommand extends AbstractCommand {
 	/**
 	 * Failure to find class info.
 	 */
-	public ReplyClassCommand() {
+	public ReplyClassMessage() {
 		this.data = null;
 		this.hasInfo = false;
 	}
@@ -42,7 +41,7 @@ public class ReplyClassCommand extends AbstractCommand {
 	 * @param data
 	 * 		Found class data.
 	 */
-	public ReplyClassCommand(ClassData data) {
+	public ReplyClassMessage(ClassData data) {
 		this.data = data;
 		this.hasInfo = data != null;
 	}

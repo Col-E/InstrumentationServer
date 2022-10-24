@@ -1,8 +1,10 @@
 package software.coley.instrument;
 
-import software.coley.instrument.command.AbstractCommand;
-import software.coley.instrument.command.CommandConstants;
 import software.coley.instrument.io.ByteBufferAllocator;
+import software.coley.instrument.message.AbstractMessage;
+import software.coley.instrument.message.MessageConstants;
+import software.coley.instrument.message.reply.AbstractReplyMessage;
+import software.coley.instrument.message.request.AbstractRequestMessage;
 import software.coley.instrument.sock.ClientChannelWrapper;
 import software.coley.instrument.sock.ReplyResult;
 import software.coley.instrument.sock.WriteResult;
@@ -65,48 +67,50 @@ public class Client {
 	}
 
 	/**
-	 * @param command
-	 * 		Command to send.
+	 * @param message
+	 * 		Message to send.
 	 *
 	 * @return Write completion.
 	 */
-	public WriteResult sendAsync(AbstractCommand command) {
-		return clientChannel.write(command, clientChannel.getNextFrameId());
+	public WriteResult sendAsync(AbstractMessage message) {
+		return clientChannel.write(message, clientChannel.getNextFrameId());
 	}
 
 	/**
-	 * @param command
-	 * 		Command to send.
+	 * @param message
+	 * 		Message to send.
 	 * @param replyHandler
-	 * 		Handler for replied packets.
+	 * 		Handler for replied messages.
 	 *
 	 * @return Reply result.
 	 */
 	@SuppressWarnings("unchecked")
-	public <R extends AbstractCommand> ReplyResult sendAsync(AbstractCommand command, Consumer<R> replyHandler) {
-		CompletableFuture<Object> replyFuture = new CompletableFuture<>();
+	public <ReplyType extends AbstractReplyMessage, RequestType extends AbstractRequestMessage<ReplyType>>
+	ReplyResult<ReplyType> sendAsync(RequestType message, Consumer<ReplyType> replyHandler) {
+		CompletableFuture<ReplyType> replyFuture = new CompletableFuture<>();
 		int frameId = clientChannel.getNextFrameId();
 		clientChannel.setResponseListener(frameId, value -> {
 			try {
+				ReplyType reply = (ReplyType) value;
 				if (replyHandler != null)
-					replyHandler.accept((R) value);
-				replyFuture.complete(value);
+					replyHandler.accept(reply);
+				replyFuture.complete(reply);
 			} catch (Exception ex) {
 				replyFuture.completeExceptionally(ex);
 			}
 		});
-		WriteResult writeResult = clientChannel.write(command, frameId);
-		return new ReplyResult(writeResult, replyFuture);
+		WriteResult writeResult = clientChannel.write(message, frameId);
+		return new ReplyResult<>(writeResult, replyFuture);
 	}
 
 	/**
-	 * @param command
-	 * 		Command to send.
+	 * @param message
+	 * 		Message to send.
 	 */
-	public synchronized void sendBlocking(AbstractCommand command) {
-		String title = "sending command (without reply expected)";
+	public synchronized void sendBlocking(AbstractMessage message) {
+		String title = "sending message (without reply expected)";
 		try {
-			sendAsync(command).getFuture().get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			sendAsync(message).getFuture().get(MessageConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Logger.error("Client interrupted while " + title);
 			close();
@@ -120,17 +124,17 @@ public class Client {
 	}
 
 	/**
-	 * @param command
-	 * 		Command to send.
+	 * @param message
+	 * 		Message to send.
 	 * @param replyHandler
-	 * 		Handler for replied packets.
+	 * 		Handler for replied messages.
 	 */
-	@SuppressWarnings("unchecked")
-	public synchronized <R extends AbstractCommand> void sendBlocking(AbstractCommand command, Consumer<R> replyHandler) {
-		String title = "sending command (reply expected)";
+	public synchronized <ReplyType extends AbstractReplyMessage, RequestType extends AbstractRequestMessage<ReplyType>>
+	void sendBlocking(RequestType message, Consumer<ReplyType> replyHandler) {
+		String title = "sending message (reply expected)";
 		try {
-			sendAsync(command, (Consumer<AbstractCommand>) replyHandler).getReplyFuture()
-					.get(CommandConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			sendAsync(message, replyHandler).getReplyFuture()
+					.get(MessageConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Logger.error("Client interrupted while " + title);
 			close();

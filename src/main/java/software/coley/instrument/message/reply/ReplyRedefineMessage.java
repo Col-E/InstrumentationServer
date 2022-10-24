@@ -1,16 +1,15 @@
-package software.coley.instrument.command.reply;
+package software.coley.instrument.message.reply;
 
-import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.io.codec.StructureCodec;
 
 /**
- * Command to reply to a redefine request, indicating success or not.
+ * Message to reply to a redefine request, indicating success or not.
  *
  * @author Matt Coley
  */
-public class ReplyRedefineCommand extends AbstractCommand {
-	public static final StructureCodec<ReplyRedefineCommand> CODEC =
-			StructureCodec.compose(input -> new ReplyRedefineCommand(input.readUTF()),
+public class ReplyRedefineMessage extends AbstractReplyMessage {
+	public static final StructureCodec<ReplyRedefineMessage> CODEC =
+			StructureCodec.compose(input -> new ReplyRedefineMessage(input.readUTF()),
 					(output, value) -> output.writeUTF(value.getMessage()));
 	public static final String MESSAGE_SUCCESS = ".";
 	private final String message;
@@ -19,7 +18,7 @@ public class ReplyRedefineCommand extends AbstractCommand {
 	 * @param ex
 	 * 		Failure reason.
 	 */
-	public ReplyRedefineCommand(Exception ex) {
+	public ReplyRedefineMessage(Exception ex) {
 		this(ex.toString());
 	}
 
@@ -27,7 +26,7 @@ public class ReplyRedefineCommand extends AbstractCommand {
 	 * @param message
 	 * 		Message to reply with.
 	 */
-	public ReplyRedefineCommand(String message) {
+	public ReplyRedefineMessage(String message) {
 		this.message = message;
 	}
 

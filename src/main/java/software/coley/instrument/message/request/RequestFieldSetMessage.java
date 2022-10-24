@@ -1,8 +1,8 @@
-package software.coley.instrument.command.request;
+package software.coley.instrument.message.request;
 
-import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.reply.ReplyFieldSetMessage;
 import software.coley.instrument.util.Logger;
 
 import java.io.File;
@@ -13,13 +13,13 @@ import java.nio.file.Paths;
 import static software.coley.instrument.util.DescUtil.*;
 
 /**
- * Command that handles setting a static field.
+ * Message that requests setting a static field.
  *
  * @author Matt Coley
  */
-public class RequestFieldSetCommand extends AbstractCommand {
-	public static final StructureCodec<RequestFieldSetCommand> CODEC =
-			StructureCodec.compose(input -> new RequestFieldSetCommand(MemberData.CODEC.decode(input), input.readUTF()),
+public class RequestFieldSetMessage extends AbstractRequestMessage<ReplyFieldSetMessage> {
+	public static final StructureCodec<RequestFieldSetMessage> CODEC =
+			StructureCodec.compose(input -> new RequestFieldSetMessage(MemberData.CODEC.decode(input), input.readUTF()),
 					((output, value) -> {
 						MemberData.CODEC.encode(output, value.getMemberInfo());
 						output.writeUTF(value.getValueText());
@@ -33,7 +33,7 @@ public class RequestFieldSetCommand extends AbstractCommand {
 	 * @param valueText
 	 * 		Field value as a string.
 	 */
-	public RequestFieldSetCommand(MemberData memberData, String valueText) {
+	public RequestFieldSetMessage(MemberData memberData, String valueText) {
 		this.memberData = memberData;
 		this.valueText = valueText;
 	}
@@ -114,7 +114,7 @@ public class RequestFieldSetCommand extends AbstractCommand {
 		String owner = memberData.getOwner();
 		String name = memberData.getName();
 		String desc = memberData.getDesc();
-		return "RequestFieldSetCommand[" +
+		return "RequestFieldSetMessage[" +
 				"owner='" + owner + '\'' +
 				", name='" + name + '\'' +
 				", desc='" + desc + '\'' +

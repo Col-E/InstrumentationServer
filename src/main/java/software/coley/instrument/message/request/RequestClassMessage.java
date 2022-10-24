@@ -1,16 +1,16 @@
-package software.coley.instrument.command.request;
+package software.coley.instrument.message.request;
 
-import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.reply.ReplyClassMessage;
 
 /**
- * Command to request bytecode of a class.
+ * Message to request bytecode of a class.
  *
  * @author Matt Coley
  */
-public class RequestClassCommand extends AbstractCommand {
-	public static final StructureCodec<RequestClassCommand> CODEC =
-			StructureCodec.compose(input -> new RequestClassCommand(input.readInt(), input.readUTF()),
+public class RequestClassMessage extends AbstractRequestMessage<ReplyClassMessage> {
+	public static final StructureCodec<RequestClassMessage> CODEC =
+			StructureCodec.compose(input -> new RequestClassMessage(input.readInt(), input.readUTF()),
 					(output, value) -> {
 						output.writeInt(value.getLoaderId());
 						output.writeUTF(value.getName());
@@ -24,7 +24,7 @@ public class RequestClassCommand extends AbstractCommand {
 	 * @param name
 	 * 		Class name.
 	 */
-	public RequestClassCommand(int loaderId, String name) {
+	public RequestClassMessage(int loaderId, String name) {
 		this.loaderId = loaderId;
 		this.name = name;
 	}

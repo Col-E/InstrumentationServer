@@ -1,6 +1,5 @@
-package software.coley.instrument.command.reply;
+package software.coley.instrument.message.reply;
 
-import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.data.BasicClassLoaderInfo;
 import software.coley.instrument.data.ClassLoaderInfo;
 import software.coley.instrument.io.codec.CommonCodecs;
@@ -9,14 +8,14 @@ import software.coley.instrument.io.codec.StructureCodec;
 import java.util.Collection;
 
 /**
- * Command to reply to client with {@link software.coley.instrument.data.ClassLoaderInfo} values.
+ * Message to reply to client with {@link software.coley.instrument.data.ClassLoaderInfo} values.
  *
  * @author xxDark
  */
-public class ReplyClassloadersCommand extends AbstractCommand {
-	public static final StructureCodec<ReplyClassloadersCommand> CODEC =
-			CommonCodecs.collectionCommand(ReplyClassloadersCommand::new,
-					ReplyClassloadersCommand::getClassLoaders,
+public class ReplyClassloadersMessage extends AbstractReplyMessage {
+	public static final StructureCodec<ReplyClassloadersMessage> CODEC =
+			CommonCodecs.collectionMessage(ReplyClassloadersMessage::new,
+					ReplyClassloadersMessage::getClassLoaders,
 					CommonCodecs.collection(BasicClassLoaderInfo.CODEC));
 	private final Collection<ClassLoaderInfo> classLoaders;
 
@@ -25,7 +24,7 @@ public class ReplyClassloadersCommand extends AbstractCommand {
 	 * 		Reply value.
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends ClassLoaderInfo> ReplyClassloadersCommand(Collection<T> classLoaders) {
+	public <T extends ClassLoaderInfo> ReplyClassloadersMessage(Collection<T> classLoaders) {
 		this.classLoaders = (Collection<ClassLoaderInfo>) classLoaders;
 	}
 

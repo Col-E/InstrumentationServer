@@ -1,15 +1,13 @@
 package software.coley.instrument;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import software.coley.instrument.command.reply.ReplyFieldGetCommand;
-import software.coley.instrument.command.reply.ReplyPingCommand;
-import software.coley.instrument.command.reply.ReplyPropertiesCommand;
-import software.coley.instrument.command.request.RequestFieldGetCommand;
-import software.coley.instrument.command.request.RequestPingCommand;
-import software.coley.instrument.command.request.RequestPropertiesCommand;
 import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
+import software.coley.instrument.message.request.RequestFieldGetMessage;
+import software.coley.instrument.message.request.RequestPingMessage;
+import software.coley.instrument.message.request.RequestPropertiesMessage;
 import software.coley.instrument.util.Logger;
 
 import java.net.InetSocketAddress;
@@ -34,20 +32,18 @@ public class LocalTest {
 
 		// Ping-Pong
 		for (int i = 0; i < 20; i++) {
-			client.sendBlocking(new RequestPingCommand(), reply -> {
-				assertTrue(reply instanceof ReplyPingCommand);
-			});
+			client.sendBlocking(new RequestPingMessage(), Assertions::assertNotNull);
 		}
 
 		// Properties lookup
-		client.sendBlocking(new RequestPropertiesCommand(), (ReplyPropertiesCommand reply) -> {
+		client.sendBlocking(new RequestPropertiesMessage(), reply -> {
 			Map<String, String> results = reply.mapValue();
 			assertNotNull(results);
 		});
 
 		// Field lookup
 		MemberData memberData = new MemberData("java/lang/Integer", "MAX_VALUE", "I");
-		client.sendBlocking(new RequestFieldGetCommand(memberData), (ReplyFieldGetCommand reply) -> {
+		client.sendBlocking(new RequestFieldGetMessage(memberData), reply -> {
 			assertEquals(String.valueOf(Integer.MAX_VALUE), reply.getValueText());
 		});
 	}

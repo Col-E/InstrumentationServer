@@ -160,31 +160,31 @@ public final class CommonCodecs {
 
 	/**
 	 * @param constructor
-	 * 		Command implementation constructor.
+	 * 		Message implementation constructor.
 	 * @param <T>
-	 * 		Command type.
+	 * 		Message type.
 	 *
-	 * @return Codec for creating an empty command type.
+	 * @return Codec for creating an empty message type.
 	 */
-	public static <T> StructureCodec<T> emptyCommand(Supplier<T> constructor) {
+	public static <T> StructureCodec<T> emptyMessage(Supplier<T> constructor) {
 		return StructureCodec.compose(input -> constructor.get(), (output, value) -> {});
 	}
 
 	/**
 	 * @param constructor
-	 * 		Command type constructor taking in a collection.
+	 * 		Message type constructor taking in a collection.
 	 * @param collectionGetter
-	 * 		Command type getter for the collection.
+	 * 		Message type getter for the collection.
 	 * @param listCodec
 	 * 		Collection codec.
 	 * @param <T>
-	 * 		Command type
+	 * 		Message type
 	 * @param <C>
-	 * 		Command collection value type.
+	 * 		Message collection value type.
 	 *
-	 * @return Codec for creating a command with only a collection property.
+	 * @return Codec for creating a message with only a collection property.
 	 */
-	public static <T, C> StructureCodec<T> collectionCommand(Function<Collection<C>, T> constructor,
+	public static <T, C> StructureCodec<T> collectionMessage(Function<Collection<C>, T> constructor,
 															 Function<T, Collection<C>> collectionGetter,
 															 StructureCodec<Collection<C>> listCodec) {
 		// decode 'input' into new T(collection<C>)

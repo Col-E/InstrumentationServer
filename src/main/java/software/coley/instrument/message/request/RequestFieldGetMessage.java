@@ -1,8 +1,8 @@
-package software.coley.instrument.command.request;
+package software.coley.instrument.message.request;
 
-import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.reply.ReplyFieldGetMessage;
 import software.coley.instrument.util.Logger;
 
 import java.lang.reflect.Field;
@@ -13,21 +13,21 @@ import static software.coley.instrument.util.DescUtil.getDescriptor;
 import static software.coley.instrument.util.DescUtil.isPrimitiveName;
 
 /**
- * Request to get the content of a static field.
+ * Message to get the content of a static field.
  *
  * @author Matt Coley
  */
-public class RequestFieldGetCommand extends AbstractCommand {
-	public static final StructureCodec<RequestFieldGetCommand> CODEC =
-			StructureCodec.compose(input -> new RequestFieldGetCommand(MemberData.CODEC.decode(input)),
-					    ((output, value) -> MemberData.CODEC.encode(output, value.getMemberInfo())));
+public class RequestFieldGetMessage extends AbstractRequestMessage<ReplyFieldGetMessage> {
+	public static final StructureCodec<RequestFieldGetMessage> CODEC =
+			StructureCodec.compose(input -> new RequestFieldGetMessage(MemberData.CODEC.decode(input)),
+					((output, value) -> MemberData.CODEC.encode(output, value.getMemberInfo())));
 	private final MemberData memberData;
 
 	/**
 	 * @param memberData
 	 * 		Field member data.
 	 */
-	public RequestFieldGetCommand(MemberData memberData) {
+	public RequestFieldGetMessage(MemberData memberData) {
 		this.memberData = memberData;
 	}
 

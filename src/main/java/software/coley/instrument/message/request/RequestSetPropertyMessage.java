@@ -1,16 +1,16 @@
-package software.coley.instrument.command.request;
+package software.coley.instrument.message.request;
 
-import software.coley.instrument.command.AbstractCommand;
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.reply.ReplySetPropertyMessage;
 
 /**
- * Command to request a setting a property in the system {@link java.util.Properties}.
+ * Message to request a setting a property in the system {@link java.util.Properties}.
  *
  * @author Matt Coley
  */
-public class RequestSetPropertyCommand extends AbstractCommand {
-	public static final StructureCodec<RequestSetPropertyCommand> CODEC =
-			StructureCodec.compose(input -> new RequestSetPropertyCommand(input.readUTF(), input.readUTF()),
+public class RequestSetPropertyMessage extends AbstractRequestMessage<ReplySetPropertyMessage> {
+	public static final StructureCodec<RequestSetPropertyMessage> CODEC =
+			StructureCodec.compose(input -> new RequestSetPropertyMessage(input.readUTF(), input.readUTF()),
 					(output, value) -> {
 						output.writeUTF(value.getKey());
 						output.writeUTF(value.getValue());
@@ -24,7 +24,7 @@ public class RequestSetPropertyCommand extends AbstractCommand {
 	 * @param value
 	 * 		Property value.
 	 */
-	public RequestSetPropertyCommand(String key, String value) {
+	public RequestSetPropertyMessage(String key, String value) {
 		this.key = key;
 		this.value = value;
 	}

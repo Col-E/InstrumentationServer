@@ -1,6 +1,6 @@
 # Instrumentation Server
 
-A minimal client-server library that allows simple interaction with a remote process's `Instrumentation` API over a command system.
+A minimal client-server library that allows simple interaction with a remote process's `Instrumentation` API over a message system.
 
 ## Usage
 
@@ -57,23 +57,23 @@ if (!client.connect()) System.err.println("Connect failed!");
 
 The `Client` class has four primary methods:
 
-| Method                                                                     | Usage |
-|----------------------------------------------------------------------------|-------|
-| `WriteResult sendAsync(AbstractCommand command)`                           | Send a `AbstractCommand` value, return wrapper of of write operation information. |
-| `ReplyResult sendAsync(AbstractCommand command, Consumer<R> replyHandler)` | Send a `AbstractCommand` value and handle a reply value _(ideally of an expected type)_, return wrapper of the write operation and read operation for the handled response. |
-| `void sendBlocking(AbstractCommand command)`                               | Send a `AbstractCommand` value, return when the command has been sent. |
-| `void sendBlocking(AbstractCommand command, Consumer<R> replyHandler)`     | Send a `AbstractCommand` value and handle a reply value _(ideally of an expected type)_, return when reply has been handled. |
+| Method                                                                                               | Usage |
+|------------------------------------------------------------------------------------------------------|-------|
+| `WriteResult sendAsync(AbstractMessage message)`                                                     | Send a `AbstractMessage` value, return wrapper of of write operation information. |
+| `ReplyResult sendAsync(AbstractRequestMessage message, Consumer<AbstractReplyMessage> replyHandler)` | Send a `AbstractMessage` value and handle a reply value _(ideally of an expected type)_, return wrapper of the write operation and read operation for the handled response. |
+| `void sendBlocking(AbstractMessage message)`                                                         | Send a `AbstractMessage` value, return when the message has been sent. |
+| `void sendBlocking(AbstractRequestMessage message, Consumer<AbstractReplyMessage> replyHandler)`     | Send a `AbstractMessage` value and handle a reply value _(ideally of an expected type)_, return when reply has been handled. |
 
-The available commands:
+The available request/response messages:
 
 | Request type                       | Response type                    | Description |
 |------------------------------------|----------------------------------|-------------|
-| `RequestClassCommand`              | `ReplyClassCommand`              | Get the `byte[]` of a class, wrapped as a `ClassData` type. |
-| `RequestClassloaderClassesCommand` | `ReplyClassloaderClassesCommand` | Get the names of classes belonging to a given `ClassLoader`. |
-| `RequestClassloadersCommand`       | `ReplyClassloadersCommand`       | Get the `int loaderId` values of all `ClassLoader` values. |
-| `RequestFieldGetCommand`           | `ReplyFieldGetCommand`           | Get the `String` representation of a `static` field's value. |
-| `RequestFieldSetCommand`           | `ReplyFieldSetCommand`           | Set the value of a `static` field's value. |
-| `RequestPingCommand`               | `ReplyPingCommand`               | Ping pong. |
-| `RequestPropertiesCommand`         | `ReplyPropertiesCommand`         | Get the `System.getProperties()` values. |
-| `RequestRedefineCommand`           | `ReplyRedefineCommand`           | Redefine a class. |
-| `RequestSetPropertyCommand`        | `ReplySetPropertyCommand`        | Set a value within the `System.getProperties()`. |
+| `RequestClassMessage`              | `ReplyClassMessage`              | Get the `byte[]` of a class, wrapped as a `ClassData` type. |
+| `RequestClassloaderClassesMessage` | `ReplyClassloaderClassesMessage` | Get the names of classes belonging to a given `ClassLoader`. |
+| `RequestClassloadersMessage`       | `ReplyClassloadersMessage`       | Get the `int loaderId` values of all `ClassLoader` values. |
+| `RequestFieldGetMessage`           | `ReplyFieldGetMessage`           | Get the `String` representation of a `static` field's value. |
+| `RequestFieldSetMessage`           | `ReplyFieldSetMessage`           | Set the value of a `static` field's value. |
+| `RequestPingMessage`               | `ReplyPingMessage`               | Ping pong. |
+| `RequestPropertiesMessage`         | `ReplyPropertiesMessage`         | Get the `System.getProperties()` values. |
+| `RequestRedefineMessage`           | `ReplyRedefineMessage`           | Redefine a class. |
+| `RequestSetPropertyMessage`        | `ReplySetPropertyMessage`        | Set a value within the `System.getProperties()`. |

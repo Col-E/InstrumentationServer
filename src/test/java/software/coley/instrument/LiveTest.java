@@ -3,13 +3,10 @@ package software.coley.instrument;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
-import software.coley.instrument.command.reply.ReplyClassloaderClassesCommand;
-import software.coley.instrument.command.reply.ReplyClassloadersCommand;
-import software.coley.instrument.command.reply.ReplyFieldGetCommand;
-import software.coley.instrument.command.request.*;
 import software.coley.instrument.data.ClassLoaderInfo;
 import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
+import software.coley.instrument.message.request.*;
 import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
 
@@ -19,10 +16,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.jar.Attributes;
-import java.util.jar.JarEntry;
-import java.util.jar.JarOutputStream;
-import java.util.jar.Manifest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -65,7 +58,7 @@ public class LiveTest {
 
 			// Get the classloaders
 			List<ClassLoaderInfo> loaders = new ArrayList<>();
-			client.sendBlocking(new RequestClassloadersCommand(), (ReplyClassloadersCommand reply) -> {
+			client.sendBlocking(new RequestClassloadersMessage(), reply -> {
 				for (ClassLoaderInfo loaderInfo : reply.getClassLoaders()) {
 					System.out.println("> Classloader: " + loaderInfo.getName());
 					if (loaderInfo.isBootstrap())
@@ -75,7 +68,7 @@ public class LiveTest {
 			});
 
 			// Update one key
-			client.sendBlocking(new RequestSetPropertyCommand("key", "new_value"), reply -> {
+			client.sendBlocking(new RequestSetPropertyMessage("key", "new_value"), reply -> {
 				System.out.println("> Key updated");
 			});
 
@@ -83,30 +76,30 @@ public class LiveTest {
 			Thread.sleep(2000);
 
 			// Update another
-			client.sendBlocking(new RequestSetPropertyCommand("alt-key", "alt_key_value"), reply -> {
+			client.sendBlocking(new RequestSetPropertyMessage("alt-key", "alt_key_value"), reply -> {
 				System.out.println("> Alt-key updated");
 			});
 
 			// Request static field value
 			MemberData memberData = new MemberData("Runner", "key", DescUtil.STRING_DESC);
-			client.sendBlocking(new RequestFieldGetCommand(memberData), (ReplyFieldGetCommand reply) -> {
+			client.sendBlocking(new RequestFieldGetMessage(memberData), reply -> {
 				assertEquals("key", reply.getValueText());
 			});
 
 			// Set static field value to different value
-			client.sendBlocking(new RequestFieldSetCommand(memberData, "alt-key"), null);
+			client.sendBlocking(new RequestFieldSetMessage(memberData, "alt-key"), null);
 
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
 			byte[] code = Files.readAllBytes(Paths.get("src/test/resources/Runner-instrumented.class"));
-			client.sendBlocking(new RequestRedefineCommand("Runner", code), null);
+			client.sendBlocking(new RequestRedefineMessage("Runner", code), null);
 
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
 
 			// Request loaded class names in the system classloader
-			client.sendBlocking(new RequestClassloaderClassesCommand(ApiConstants.SYSTEM_CLASSLOADER_ID), (ReplyClassloaderClassesCommand reply) -> {
+			client.sendBlocking(new RequestClassloaderClassesMessage(ApiConstants.SYSTEM_CLASSLOADER_ID), reply -> {
 				System.out.println("There are " + reply.getClasses().size() + " total classes in the SCL");
 			});
 		} finally {
