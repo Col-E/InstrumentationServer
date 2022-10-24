@@ -44,9 +44,7 @@ public final class ByteBufferSanitizer {
 	 */
 	public ByteBuffer consume() {
 		ByteBuffer buffer = this.buffer;
-		int pos = buffer.position();
-		buffer.position(0);
-		buffer.limit(pos);
+		buffer.flip();
 		return buffer;
 	}
 

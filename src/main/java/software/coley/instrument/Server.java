@@ -1,20 +1,27 @@
 package software.coley.instrument;
 
+import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
-import software.coley.instrument.sock.ChannelWrapper;
-import software.coley.instrument.sock.ServerChannelWrapper;
+import software.coley.instrument.message.AbstractMessage;
+import software.coley.instrument.message.MessageFactory;
+import software.coley.instrument.message.broadcast.AbstractBroadcastMessage;
+import software.coley.instrument.message.reply.*;
+import software.coley.instrument.message.request.*;
+import software.coley.instrument.sock.ChannelHandler;
 import software.coley.instrument.util.Logger;
+import software.coley.instrument.util.NamedThreadFactory;
 
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousServerSocketChannel;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.*;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Server which exposes capabilities of {@link Instrumentation} to a client.
@@ -24,11 +31,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class Server {
 	public static final int DEFAULT_PORT = 25252;
-	private final Set<ChannelWrapper> clients = Collections.synchronizedSet(new HashSet<>());
+	private final Set<ChannelHandler> clients = Collections.synchronizedSet(new HashSet<>());
+	private final Map<Class<?>, ReplyHandler<?>> replyHandlerMap = new IdentityHashMap<>();
 	private final AtomicBoolean closed = new AtomicBoolean();
-	private final AsynchronousServerSocketChannel serverChannel;
+	private final ServerSocketChannel serverChannel;
 	private final InstrumentationHelper instrumentation;
 	private final ByteBufferAllocator allocator;
+	private final MessageFactory factory;
 
 	/**
 	 * @param instrumentation
@@ -37,12 +46,15 @@ public class Server {
 	 * 		Channel to operate on.
 	 * @param allocator
 	 * 		Allocator instance to pass to {@link #clients client channels}.
+	 * @param factory
+	 * 		Message factory configured with supported message types.
 	 */
-	private Server(Instrumentation instrumentation, AsynchronousServerSocketChannel serverChannel,
-				   ByteBufferAllocator allocator) {
-		this.instrumentation = new InstrumentationHelper(instrumentation);
+	private Server(Instrumentation instrumentation, ServerSocketChannel serverChannel,
+				   ByteBufferAllocator allocator, MessageFactory factory) {
+		this.instrumentation = new InstrumentationHelper(this, instrumentation);
 		this.serverChannel = serverChannel;
 		this.allocator = allocator;
+		this.factory = factory;
 	}
 
 	/**
@@ -52,6 +64,8 @@ public class Server {
 	 * 		Address to bind to.
 	 * @param allocator
 	 * 		Allocator instance to pass to {@link #clients client channels}.
+	 * @param factory
+	 * 		Message factory configured with supported message types.
 	 *
 	 * @return New server instance.
 	 *
@@ -59,10 +73,10 @@ public class Server {
 	 * 		When the {@link AsynchronousServerSocketChannel} cannot be opened on the given address.
 	 */
 	public static Server open(Instrumentation instrumentation, InetSocketAddress address,
-							  ByteBufferAllocator allocator) throws IOException {
+							  ByteBufferAllocator allocator, MessageFactory factory) throws IOException {
 		Logger.info("Opening server on: " + address);
-		AsynchronousServerSocketChannel ch = AsynchronousServerSocketChannel.open().bind(address);
-		Server server = new Server(instrumentation, ch, allocator);
+		ServerSocketChannel ch = ServerSocketChannel.open().bind(address);
+		Server server = new Server(instrumentation, ch, allocator, factory);
 		server.acceptLoop();
 		return server;
 	}
@@ -77,7 +91,7 @@ public class Server {
 	/**
 	 * @return Active clients.
 	 */
-	public Set<ChannelWrapper> getClients() {
+	public Set<ChannelHandler> getClients() {
 		return clients;
 	}
 
@@ -95,8 +109,8 @@ public class Server {
 		if (closed.compareAndSet(false, true)) {
 			Logger.debug("Closing client connections");
 			synchronized (clients) {
-				for (ChannelWrapper ch : clients) {
-					ch.close();
+				for (ChannelHandler ch : clients) {
+					ch.shutdown();
 				}
 			}
 			try {
@@ -110,24 +124,108 @@ public class Server {
 	}
 
 	/**
+	 * @param message
+	 * 		Message to broadcast.
+	 */
+	public void broadcast(AbstractBroadcastMessage message) {
+		for (ChannelHandler client : clients) {
+			client.write(message, ApiConstants.BROADCAST_MESSAGE_ID);
+		}
+	}
+
+	/**
 	 * Handles data loop for each new client connection.
 	 */
 	private void acceptLoop() {
-		serverChannel.accept(null, new CompletionHandler<AsynchronousSocketChannel, Object>() {
-			@Override
-			public void completed(AsynchronousSocketChannel result, Object attachment) {
-				ServerChannelWrapper ch = new ServerChannelWrapper(result, allocator, Server.this);
-				synchronized (clients) {
-					clients.add(ch);
+		Executors.newSingleThreadExecutor(new NamedThreadFactory("SERVER-ACCEPT-LOOP")).submit(() -> {
+			try {
+				while (!isClosed()) {
+					SocketChannel accept = serverChannel.accept();
+					ChannelHandler ch = new ChannelHandler(accept, allocator, factory);
+					configureChannel(ch);
+					synchronized (clients) {
+						Logger.info("New client: " + accept.toString());
+						clients.add(ch);
+						ch.start();
+					}
 				}
-				acceptLoop();
-			}
-
-			@Override
-			public void failed(Throwable ex, Object attachment) {
+			} catch (IOException ex) {
 				Logger.error("Server accept-loop failure: " + ex);
 				close();
 			}
 		});
+	}
+
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	private void configureChannel(ChannelHandler ch) {
+		// Setup general reply handler
+		ch.setAllResponsesListener((frameId, value) -> {
+			if (frameId != ApiConstants.BROADCAST_MESSAGE_ID) {
+				Logger.debug("Server handling request[id=" + frameId + ", value=" + value + "]");
+				ReplyHandler handler = replyHandlerMap.get(value.getClass());
+				if (handler != null)
+					handler.accept(frameId, value);
+			}
+		});
+		// Setup response handling
+		InstrumentationHelper inst = instrumentation;
+		answer(ch, RequestPingMessage.class, ReplyPingMessage::new);
+		answer(ch, RequestPropertiesMessage.class, () -> new ReplyPropertiesMessage(System.getProperties()));
+		answer(ch, RequestSetPropertyMessage.class, req -> {
+			System.getProperties().put(req.getKey(), req.getValue());
+			return new ReplySetPropertyMessage();
+		});
+		answer(ch, RequestClassloadersMessage.class, () -> new ReplyClassloadersMessage(inst.getLoaders()));
+		answer(ch, RequestClassloaderClassesMessage.class, req -> {
+			int loaderId = req.getLoaderId();
+			return new ReplyClassloaderClassesMessage(loaderId, inst.getLoaderClasses(loaderId));
+		});
+		answer(ch, RequestClassMessage.class, req ->
+				new ReplyClassMessage(inst.getClassData(req.getLoaderId(), req.getName())));
+		answer(ch, RequestRedefineMessage.class, req -> {
+			inst.lock();
+			try {
+				inst.redefineClass(req.getLoaderId(), req.getClassName(), req.getBytecode());
+				return new ReplyRedefineMessage(ReplyRedefineMessage.MESSAGE_SUCCESS);
+			} catch (Exception ex) {
+				return new ReplyRedefineMessage(ex);
+			} finally {
+				inst.unlock();
+			}
+		});
+		answer(ch, RequestFieldGetMessage.class, req -> {
+			MemberData member = req.getMemberInfo();
+			try {
+				return new ReplyFieldGetMessage(member, req.lookupValue());
+			} catch (Exception ex) {
+				return new ReplyFieldGetMessage(member, null);
+			}
+		});
+		answer(ch, RequestFieldSetMessage.class, req -> {
+			try {
+				req.assignValue();
+				return new ReplyFieldSetMessage(ReplyFieldSetMessage.MESSAGE_SUCCESS);
+			} catch (Exception ex) {
+				return new ReplyFieldSetMessage(ex.toString());
+			}
+		});
+	}
+
+	private <T extends AbstractMessage, R extends AbstractMessage>
+	void answer(ChannelHandler ch, Class<T> type, Function<? super T, R> fn) {
+		addHandler(type, (frameId, value) -> ch.write(fn.apply(value), frameId));
+	}
+
+	private <T extends AbstractMessage, R extends AbstractMessage>
+	void answer(ChannelHandler ch, Class<T> type, Supplier<R> fn) {
+		addHandler(type, (frameId, value) -> ch.write(fn.get(), frameId));
+	}
+
+	private <T extends AbstractMessage> void addHandler(Class<T> type, ReplyHandler<T> handler) {
+		replyHandlerMap.put(type, handler);
+	}
+
+	private interface ReplyHandler<T extends AbstractMessage> {
+		void accept(int frameId, T value);
 	}
 }

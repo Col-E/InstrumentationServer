@@ -26,6 +26,9 @@ public interface MessageConstants {
 	int ID_REP_REDEFINE = 213;
 	int ID_REP_FIELD_GET = 214;
 	int ID_REP_FIELD_SET = 215;
+	// broadcast
+	int ID_BROADCAST_LOADER = 300;
+	int ID_BROADCAST_CLASS = 301;
 	//
 	long TIMEOUT_SECONDS = 5;
 }

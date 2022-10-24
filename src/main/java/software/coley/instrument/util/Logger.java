@@ -11,7 +11,7 @@ public class Logger {
 	public static final int WARN = 1;
 	public static final int INFO = 2;
 	public static final int DEBUG = 3;
-	public static int level = NONE;
+	public static int level = INFO;
 
 	/**
 	 * @param message

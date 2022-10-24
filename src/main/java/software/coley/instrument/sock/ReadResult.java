@@ -1,11 +1,13 @@
 package software.coley.instrument.sock;
 
+import software.coley.instrument.message.AbstractMessage;
+
 /**
  * Wrapper for read information.
  *
  * @author Matt Coley
  */
-public class ReadResult<T> {
+public class ReadResult<T extends AbstractMessage> {
 	private final int frameId;
 	private final T value;
 

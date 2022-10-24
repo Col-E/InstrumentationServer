@@ -6,6 +6,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import software.coley.instrument.data.ClassLoaderInfo;
 import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
+import software.coley.instrument.message.MessageFactory;
 import software.coley.instrument.message.request.*;
 import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
@@ -45,6 +46,7 @@ public class LiveTest {
 	@ResourceLock(SERVER) // Use this lock on other tests if they get split later
 	public void test() throws Exception {
 		Process start = null;
+		Client client = null;
 		try {
 			// Start the java-agent on the 'Runner' example application
 			String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/");
@@ -53,7 +55,9 @@ public class LiveTest {
 			start = pb.start();
 			// Setup our local client
 			Thread.sleep(1500);
-			Client client = new Client("localhost", Server.DEFAULT_PORT, ByteBufferAllocator.HEAP);
+			int[] broadcastCounter = new int[1];
+			client = new Client("localhost", Server.DEFAULT_PORT, ByteBufferAllocator.HEAP, MessageFactory.create());
+			client.setBroadcastListener(message -> broadcastCounter[0]++);
 			assertTrue(client.connect());
 
 			// Get the classloaders
@@ -83,6 +87,7 @@ public class LiveTest {
 			// Request static field value
 			MemberData memberData = new MemberData("Runner", "key", DescUtil.STRING_DESC);
 			client.sendBlocking(new RequestFieldGetMessage(memberData), reply -> {
+				System.out.println("Get: " + reply.getValueText());
 				assertEquals("key", reply.getValueText());
 			});
 
@@ -93,7 +98,7 @@ public class LiveTest {
 			Thread.sleep(2000);
 
 			byte[] code = Files.readAllBytes(Paths.get("src/test/resources/Runner-instrumented.class"));
-			client.sendBlocking(new RequestRedefineMessage("Runner", code), null);
+			client.sendBlocking(new RequestRedefineMessage(ApiConstants.SYSTEM_CLASSLOADER_ID, "Runner", code), null);
 
 			// Let runner app run to show the print output is different
 			Thread.sleep(2000);
@@ -102,7 +107,14 @@ public class LiveTest {
 			client.sendBlocking(new RequestClassloaderClassesMessage(ApiConstants.SYSTEM_CLASSLOADER_ID), reply -> {
 				System.out.println("There are " + reply.getClasses().size() + " total classes in the SCL");
 			});
+
+			int updated = broadcastCounter[0];
+			System.out.println("There were " + updated + " broadcasted class updates");
+			assertTrue(updated > 0);
+			assertTrue(loaders.size() > 0);
 		} finally {
+			if (client != null)
+				client.close();
 			// Kill the remote process and delete the agent jar
 			if (start != null)
 				start.destroyForcibly();

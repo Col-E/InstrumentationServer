@@ -1,17 +1,20 @@
 package software.coley.instrument.message;
 
+import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.broadcast.BroadcastClassMessage;
+import software.coley.instrument.message.broadcast.BroadcastClassloaderMessage;
 import software.coley.instrument.message.reply.*;
 import software.coley.instrument.message.request.*;
-import software.coley.instrument.io.codec.StructureCodec;
-import software.coley.instrument.util.Logger;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
+/**
+ * Factory to support {@link AbstractMessage} serialization.
+ *
+ * @author Matt Coley
+ */
 public class MessageFactory implements MessageConstants {
 	private final Map<Class<?>, MessageInfo> messageTypeMap = new IdentityHashMap<>();
 	private final Map<Integer, MessageInfo> messageIdMap = new HashMap<>();
@@ -43,47 +46,78 @@ public class MessageFactory implements MessageConstants {
 		//
 		register(ID_REQ_FIELD_SET, RequestFieldSetMessage.CODEC);
 		register(ID_REP_FIELD_SET, ReplyFieldSetMessage.CODEC);
+		//
+		register(ID_BROADCAST_LOADER, BroadcastClassloaderMessage.CODEC);
+		register(ID_BROADCAST_CLASS, BroadcastClassMessage.CODEC);
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T> T decode(DataInput input) throws IOException {
-		int id = input.readInt();
-		MessageInfo info = messageIdMap.get(id);
-		if (info == null)
-			throw new IOException("Unknown message id " + id);
-		T decoded = (T) info.codec.decode(input);
-		Logger.debug("Decode message[" + id + "] - " + decoded.getClass().getSimpleName());
-		return decoded;
-	}
-
-	@SuppressWarnings({"unchecked", "rawtypes"})
-	public void encode(DataOutput output, Object value) throws IOException {
+	/**
+	 * @param value
+	 * 		Message instance.
+	 *
+	 * @return Message structure information.
+	 */
+	public MessageInfo getInfo(Object value) {
 		MessageInfo info = messageTypeMap.get(value.getClass());
 		if (info == null)
-			throw new IOException("Could not encode value: " + value);
-		Logger.debug("Encode message[" + info.id + "] - " + value.getClass().getSimpleName());
-		output.writeInt(info.id);
-		((StructureCodec) info.codec).encode(output, value);
+			throw new IllegalStateException("Unsupported value type: " + value.getClass());
+		return info;
 	}
 
-	private <T> void register(int id, StructureCodec<T> codec, T... typeHint) {
+	/**
+	 * @param key
+	 * 		Message ID.
+	 *
+	 * @return Message structure information.
+	 */
+	public MessageInfo getInfo(int key) {
+		MessageInfo info = messageIdMap.get(key);
+		if (info == null)
+			throw new IllegalStateException("Unsupported value key: " + key);
+		return info;
+	}
+
+	/**
+	 * @param id
+	 * 		Message ID.
+	 * @param codec
+	 * 		Message structure codec for encoding/decoding.
+	 * @param typeHint
+	 * 		Magic.
+	 * @param <T>
+	 * 		Message type.
+	 */
+	public <T extends AbstractMessage> void register(int id, StructureCodec<T> codec, T... typeHint) {
 		Class<?> type = typeHint.getClass().getComponentType();
 		MessageInfo info = new MessageInfo(codec, id);
 		messageTypeMap.put(type, info);
 		messageIdMap.put(id, info);
 	}
 
+	/**
+	 * @return New factory instance.
+	 */
 	public static MessageFactory create() {
 		return new MessageFactory();
 	}
 
-	private static final class MessageInfo {
-		final StructureCodec<?> codec;
-		final int id;
+	public static final class MessageInfo {
+		private final StructureCodec<AbstractMessage> codec;
+		private final int id;
 
-		MessageInfo(StructureCodec<?> codec, int id) {
-			this.codec = codec;
+		@SuppressWarnings("unchecked")
+		<T extends AbstractMessage> MessageInfo(StructureCodec<T> codec, int id) {
+			this.codec = (StructureCodec<AbstractMessage>) codec;
 			this.id = id;
+		}
+
+		@SuppressWarnings("unchecked")
+		public <T extends AbstractMessage> StructureCodec<T> getCodec() {
+			return (StructureCodec<T>) codec;
+		}
+
+		public int getId() {
+			return id;
 		}
 	}
 }

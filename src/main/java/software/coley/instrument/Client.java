@@ -3,9 +3,11 @@ package software.coley.instrument;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.message.AbstractMessage;
 import software.coley.instrument.message.MessageConstants;
+import software.coley.instrument.message.MessageFactory;
 import software.coley.instrument.message.reply.AbstractReplyMessage;
 import software.coley.instrument.message.request.AbstractRequestMessage;
-import software.coley.instrument.sock.ClientChannelWrapper;
+import software.coley.instrument.sock.BroadcastListener;
+import software.coley.instrument.sock.ChannelHandler;
 import software.coley.instrument.sock.ReplyResult;
 import software.coley.instrument.sock.WriteResult;
 import software.coley.instrument.util.Logger;
@@ -13,6 +15,7 @@ import software.coley.instrument.util.Logger;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -25,8 +28,9 @@ import java.util.function.Consumer;
  * @author Matt Coley
  */
 public class Client {
-	private final ClientChannelWrapper clientChannel;
 	private final InetSocketAddress hostAddress;
+	private final SocketChannel socketChannel;
+	private final ChannelHandler handler;
 
 	/**
 	 * @param ip
@@ -35,13 +39,26 @@ public class Client {
 	 * 		Port to connect on.
 	 * @param allocator
 	 * 		Allocator strategy to use.
+	 * @param factory
+	 * 		Message factory configured with supported message types.
 	 *
 	 * @throws IOException
 	 * 		When the {@link AsynchronousSocketChannel} cannot be opened.
 	 */
-	public Client(String ip, int port, ByteBufferAllocator allocator) throws IOException {
-		this.clientChannel = new ClientChannelWrapper(AsynchronousSocketChannel.open(), allocator);
+	public Client(String ip, int port, ByteBufferAllocator allocator, MessageFactory factory) throws IOException {
+		this.socketChannel = SocketChannel.open();
 		this.hostAddress = new InetSocketAddress(ip, port);
+		this.handler = new ChannelHandler(socketChannel, allocator, factory);
+	}
+
+	/**
+	 * @param listener
+	 * 		Listener to use.
+	 *
+	 * @see ChannelHandler#setBroadcastListener(BroadcastListener)
+	 */
+	public void setBroadcastListener(BroadcastListener listener) {
+		handler.setBroadcastListener(listener);
 	}
 
 	/**
@@ -51,8 +68,11 @@ public class Client {
 	 */
 	public boolean connect() {
 		try {
-			clientChannel.connect(hostAddress);
-			return true;
+			if (socketChannel.connect(hostAddress)) {
+				handler.start();
+				return true;
+			}
+			throw new IOException("Could not connect to: " + hostAddress);
 		} catch (Exception ex) {
 			Logger.error("Failed to connect to host: " + hostAddress + " - " + ex);
 			return false;
@@ -62,8 +82,21 @@ public class Client {
 	/**
 	 * Close connection.
 	 */
-	public void close() {
-		clientChannel.close();
+	public void close() throws IOException {
+		handler.shutdown();
+		socketChannel.close();
+	}
+
+	/**
+	 * Internal usage only.
+	 * Call {@link #close()} silently.
+	 */
+	private void quietClose() {
+		try {
+			close();
+		} catch (IOException ex) {
+			Logger.error("Failed to close client: " + ex);
+		}
 	}
 
 	/**
@@ -72,8 +105,8 @@ public class Client {
 	 *
 	 * @return Write completion.
 	 */
-	public WriteResult sendAsync(AbstractMessage message) {
-		return clientChannel.write(message, clientChannel.getNextFrameId());
+	public <T extends AbstractMessage> WriteResult<T> sendAsync(T message) {
+		return handler.write(message, handler.getNextFrameId());
 	}
 
 	/**
@@ -81,15 +114,19 @@ public class Client {
 	 * 		Message to send.
 	 * @param replyHandler
 	 * 		Handler for replied messages.
+	 * @param <RequestType>
+	 * 		Message type of sent content.
+	 * @param <ReplyType>
+	 * 		Message type of response content.
 	 *
 	 * @return Reply result.
 	 */
 	@SuppressWarnings("unchecked")
 	public <ReplyType extends AbstractReplyMessage, RequestType extends AbstractRequestMessage<ReplyType>>
-	ReplyResult<ReplyType> sendAsync(RequestType message, Consumer<ReplyType> replyHandler) {
+	ReplyResult<RequestType, ReplyType> sendAsync(RequestType message, Consumer<ReplyType> replyHandler) {
 		CompletableFuture<ReplyType> replyFuture = new CompletableFuture<>();
-		int frameId = clientChannel.getNextFrameId();
-		clientChannel.setResponseListener(frameId, value -> {
+		int frameId = handler.getNextFrameId();
+		handler.addResponseListener(frameId, (responseId, value) -> {
 			try {
 				ReplyType reply = (ReplyType) value;
 				if (replyHandler != null)
@@ -99,7 +136,7 @@ public class Client {
 				replyFuture.completeExceptionally(ex);
 			}
 		});
-		WriteResult writeResult = clientChannel.write(message, frameId);
+		WriteResult<RequestType> writeResult = handler.write(message, frameId);
 		return new ReplyResult<>(writeResult, replyFuture);
 	}
 
@@ -113,13 +150,13 @@ public class Client {
 			sendAsync(message).getFuture().get(MessageConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Logger.error("Client interrupted while " + title);
-			close();
+			quietClose();
 		} catch (ExecutionException e) {
 			Logger.error("Client encountered error " + title + " into buffer: " + e.getCause());
-			close();
+			quietClose();
 		} catch (TimeoutException e) {
 			Logger.error("Client timed out " + title);
-			close();
+			quietClose();
 		}
 	}
 
@@ -128,6 +165,10 @@ public class Client {
 	 * 		Message to send.
 	 * @param replyHandler
 	 * 		Handler for replied messages.
+	 * @param <RequestType>
+	 * 		Message type of sent content.
+	 * @param <ReplyType>
+	 * 		Message type of response content.
 	 */
 	public synchronized <ReplyType extends AbstractReplyMessage, RequestType extends AbstractRequestMessage<ReplyType>>
 	void sendBlocking(RequestType message, Consumer<ReplyType> replyHandler) {
@@ -137,13 +178,13 @@ public class Client {
 					.get(MessageConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Logger.error("Client interrupted while " + title);
-			close();
+			quietClose();
 		} catch (ExecutionException e) {
 			Logger.error("Client encountered error " + title + " into buffer: " + e.getCause());
-			close();
+			quietClose();
 		} catch (TimeoutException e) {
 			Logger.error("Client timed out " + title);
-			close();
+			quietClose();
 		}
 	}
 }

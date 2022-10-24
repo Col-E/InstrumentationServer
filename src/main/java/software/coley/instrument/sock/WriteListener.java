@@ -3,16 +3,16 @@ package software.coley.instrument.sock;
 import software.coley.instrument.message.AbstractMessage;
 
 /**
- * Listener to handle a response to some request message, indicated by the frame ID.
+ * Listener to handle all all write operations.
  *
  * @author Matt Coley
  */
-public interface ResponseListener {
+public interface WriteListener {
 	/**
 	 * @param frameId
 	 * 		Message ID.
 	 * @param message
 	 * 		Message content.
 	 */
-	void onReceive(int frameId, AbstractMessage message);
+	void onWrite(int frameId, AbstractMessage message);
 }

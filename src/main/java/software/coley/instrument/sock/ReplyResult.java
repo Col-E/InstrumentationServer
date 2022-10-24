@@ -1,6 +1,7 @@
 package software.coley.instrument.sock;
 
 import software.coley.instrument.message.reply.AbstractReplyMessage;
+import software.coley.instrument.message.request.AbstractRequestMessage;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -12,8 +13,8 @@ import java.util.concurrent.CompletableFuture;
  *
  * @author Matt Coley
  */
-public class ReplyResult<R extends AbstractReplyMessage> {
-	private final WriteResult writeResult;
+public class ReplyResult<Q extends AbstractRequestMessage<R>, R extends AbstractReplyMessage> {
+	private final WriteResult<Q> writeResult;
 	private final CompletableFuture<R> replyFuture;
 
 	/**
@@ -22,7 +23,7 @@ public class ReplyResult<R extends AbstractReplyMessage> {
 	 * @param replyFuture
 	 * 		Future for waiting on a response to be acknowledged.
 	 */
-	public ReplyResult(WriteResult writeResult, CompletableFuture<R> replyFuture) {
+	public ReplyResult(WriteResult<Q> writeResult, CompletableFuture<R> replyFuture) {
 		this.writeResult = writeResult;
 		this.replyFuture = replyFuture;
 	}
@@ -30,7 +31,7 @@ public class ReplyResult<R extends AbstractReplyMessage> {
 	/**
 	 * @return Initial write request, containing the request message.
 	 */
-	public WriteResult getWriteResult() {
+	public WriteResult<Q> getWriteResult() {
 		return writeResult;
 	}
 

@@ -1,6 +1,7 @@
 package software.coley.instrument;
 
 import software.coley.instrument.io.ByteBufferAllocator;
+import software.coley.instrument.message.MessageFactory;
 
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
@@ -56,7 +57,10 @@ public class Agent {
 			// Determine port
 			int port = getPort(agentArgs);
 			// Create server
-			server = Server.open(instrumentation, new InetSocketAddress("localhost", port), ByteBufferAllocator.HEAP);
+			server = Server.open(instrumentation,
+					new InetSocketAddress("localhost", port),
+					ByteBufferAllocator.HEAP,
+					MessageFactory.create());
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close()));
 		}
 	}
