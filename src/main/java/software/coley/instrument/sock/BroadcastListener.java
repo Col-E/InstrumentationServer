@@ -10,8 +10,10 @@ import software.coley.instrument.message.broadcast.AbstractBroadcastMessage;
  */
 public interface BroadcastListener {
 	/**
+	 * @param messageType
+	 * 		Message type. See {@link software.coley.instrument.message.MessageConstants}.
 	 * @param message
 	 * 		Message content.
 	 */
-	void onReceive(AbstractBroadcastMessage message);
+	void onReceive(int messageType, AbstractBroadcastMessage message);
 }

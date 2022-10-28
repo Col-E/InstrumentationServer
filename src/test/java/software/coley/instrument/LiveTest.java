@@ -57,7 +57,7 @@ public class LiveTest {
 			Thread.sleep(1500);
 			int[] broadcastCounter = new int[1];
 			client = new Client("localhost", Server.DEFAULT_PORT, ByteBufferAllocator.HEAP, MessageFactory.create());
-			client.setBroadcastListener(message -> broadcastCounter[0]++);
+			client.setBroadcastListener((type, message) -> broadcastCounter[0]++);
 			assertTrue(client.connect());
 
 			// Get the classloaders

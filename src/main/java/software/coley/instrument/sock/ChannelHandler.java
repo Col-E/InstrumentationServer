@@ -164,7 +164,7 @@ public class ChannelHandler {
 				// Notify listeners
 				if (readFrameId == ApiConstants.BROADCAST_MESSAGE_ID) {
 					if (broadcastListener != null)
-						eventQueue.add(() -> broadcastListener.onReceive((AbstractBroadcastMessage) value));
+						eventQueue.add(() -> broadcastListener.onReceive(messageType, (AbstractBroadcastMessage) value));
 				} else {
 					ResponseListener responseListener = responseListeners.remove(readFrameId);
 					if (responseListener != null)

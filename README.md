@@ -16,7 +16,7 @@ String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/");
 Process remote = new ProcessBuilder("java", agent, "-cp", "<classpath>", "<main-class>").start();
 // Connect
 int port = Server.DEFAULT_PORT;
-Client client = new Client("localhost", port, ByteBufferAllocator.HEAP);
+Client client = new Client("localhost", port, ByteBufferAllocator.HEAP, MessageFactory.create());
 if (!client.connect()) System.err.println("Connect failed!");
 ```
 
@@ -51,6 +51,14 @@ for (VirtualMachineDescriptor descriptor : VirtualMachine.list()) {
 // Connect
 Client client = new Client("localhost", openPort, ByteBufferAllocator.HEAP);
 if (!client.connect()) System.err.println("Connect failed!");
+// Send request + handle reply
+MemberData memberData = new MemberData("java/lang/Integer", "MAX_VALUE", "I");
+client.sendBlocking(new RequestFieldGetMessage(memberData), reply -> {
+	// reply is asserted to be ReplyFieldGetMessage
+	System.out.println(reply.getValueText());
+});
+// Handle general broadcasts
+client.setBroadcastListener((type, message) -> { });
 ```
 
 ### API
@@ -77,3 +85,10 @@ The available request/response messages:
 | `RequestPropertiesMessage`         | `ReplyPropertiesMessage`         | Get the `System.getProperties()` values. |
 | `RequestRedefineMessage`           | `ReplyRedefineMessage`           | Redefine a class. |
 | `RequestSetPropertyMessage`        | `ReplySetPropertyMessage`        | Set a value within the `System.getProperties()`. |
+
+The available broadcast messages:
+
+| Type                          | Description |
+|-------------------------------|-------------|
+| `BroadcastClassloaderMessage` | Sent any time a new `ClassLoader` has been used. |
+| `BroadcastClassMessage`       | Sent any time a class definition has been updated. |

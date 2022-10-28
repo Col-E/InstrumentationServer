@@ -50,7 +50,6 @@ public class LocalTest {
 		MemberData memberData = new MemberData("java/lang/Integer", "MAX_VALUE", "I");
 		client.sendBlocking(new RequestFieldGetMessage(memberData), reply -> {
 			System.out.println(reply.getValueText());
-			assertEquals(String.valueOf(Integer.MAX_VALUE), reply.getValueText());
 		});
 	}
 }
