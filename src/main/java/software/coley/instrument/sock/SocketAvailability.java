@@ -40,7 +40,7 @@ public final class SocketAvailability {
 	 * @return {@code true} when can be bound to.
 	 */
 	@SuppressWarnings("unused")
-	private static boolean isAvailable(int port) {
+	public static boolean isAvailable(int port) {
 		try (ServerSocket serverSocket = new ServerSocket(port)) {
 			return true;
 		} catch (Exception ex) {

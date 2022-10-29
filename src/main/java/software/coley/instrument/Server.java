@@ -8,6 +8,7 @@ import software.coley.instrument.message.broadcast.AbstractBroadcastMessage;
 import software.coley.instrument.message.reply.*;
 import software.coley.instrument.message.request.*;
 import software.coley.instrument.sock.ChannelHandler;
+import software.coley.instrument.util.Discovery;
 import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.NamedThreadFactory;
 
@@ -38,23 +39,27 @@ public class Server {
 	private final InstrumentationHelper instrumentation;
 	private final ByteBufferAllocator allocator;
 	private final MessageFactory factory;
+	private final int port;
 
 	/**
 	 * @param instrumentation
 	 * 		Instrumentation instance.
-	 * @param serverChannel
-	 * 		Channel to operate on.
+	 * @param address
+	 * 		Address to open server on.
 	 * @param allocator
 	 * 		Allocator instance to pass to {@link #clients client channels}.
 	 * @param factory
 	 * 		Message factory configured with supported message types.
 	 */
-	private Server(Instrumentation instrumentation, ServerSocketChannel serverChannel,
-				   ByteBufferAllocator allocator, MessageFactory factory) {
+	private Server(Instrumentation instrumentation, InetSocketAddress address,
+				   ByteBufferAllocator allocator, MessageFactory factory) throws IOException {
+		Logger.info("Opening server on: " + address);
+		this.serverChannel = ServerSocketChannel.open().bind(address);
 		this.instrumentation = new InstrumentationHelper(this, instrumentation);
-		this.serverChannel = serverChannel;
 		this.allocator = allocator;
 		this.factory = factory;
+		this.port = address.getPort();
+		Discovery.setupDiscovery(port);
 	}
 
 	/**
@@ -74,9 +79,7 @@ public class Server {
 	 */
 	public static Server open(Instrumentation instrumentation, InetSocketAddress address,
 							  ByteBufferAllocator allocator, MessageFactory factory) throws IOException {
-		Logger.info("Opening server on: " + address);
-		ServerSocketChannel ch = ServerSocketChannel.open().bind(address);
-		Server server = new Server(instrumentation, ch, allocator, factory);
+		Server server = new Server(instrumentation, address, allocator, factory);
 		server.acceptLoop();
 		return server;
 	}
@@ -108,6 +111,7 @@ public class Server {
 	public void close() {
 		if (closed.compareAndSet(false, true)) {
 			Logger.debug("Closing client connections");
+			Discovery.removeDiscovery(port);
 			synchronized (clients) {
 				for (ChannelHandler ch : clients) {
 					ch.shutdown();
