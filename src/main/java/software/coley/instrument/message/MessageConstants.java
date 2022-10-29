@@ -10,6 +10,7 @@ public interface MessageConstants {
 	int ID_REQ_PING= 100;
 	int ID_REQ_PROPERTIES = 101;
 	int ID_REQ_SET_PROPERTY = 102;
+	int ID_REQ_THREADS = 103;
 	int ID_REQ_CLASSLOADERS = 110;
 	int ID_REQ_CLASSLOADER_CLASSES = 111;
 	int ID_REQ_GET_CLASS = 112;
@@ -20,6 +21,7 @@ public interface MessageConstants {
 	int ID_REP_PONG = 200;
 	int ID_REP_PROPERTIES = 201;
 	int ID_REP_SET_PROPERTY = 202;
+	int ID_REP_THREADS = 203;
 	int ID_REP_CLASSLOADERS = 210;
 	int ID_REP_CLASSLOADER_CLASSES = 211;
 	int ID_REP_GET_CLASS = 212;

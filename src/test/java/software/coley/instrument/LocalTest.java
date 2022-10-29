@@ -4,11 +4,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import software.coley.instrument.data.MemberData;
+import software.coley.instrument.data.ThreadData;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.message.MessageFactory;
 import software.coley.instrument.message.request.RequestFieldGetMessage;
 import software.coley.instrument.message.request.RequestPingMessage;
 import software.coley.instrument.message.request.RequestPropertiesMessage;
+import software.coley.instrument.message.request.RequestThreadsMessage;
 import software.coley.instrument.util.Logger;
 
 import java.net.InetSocketAddress;
@@ -44,6 +46,12 @@ public class LocalTest {
 			Map<String, String> results = reply.mapValue();
 			System.out.println(results);
 			assertNotNull(results);
+		});
+
+		// Threads
+		client.sendBlocking(new RequestThreadsMessage(), reply -> {
+			for (ThreadData thread : reply.getThreads())
+				System.out.println(thread);
 		});
 
 		// Field lookup

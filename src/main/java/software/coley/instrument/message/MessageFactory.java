@@ -47,6 +47,9 @@ public class MessageFactory implements MessageConstants {
 		register(ID_REQ_FIELD_SET, RequestFieldSetMessage.CODEC);
 		register(ID_REP_FIELD_SET, ReplyFieldSetMessage.CODEC);
 		//
+		register(ID_REQ_THREADS, RequestThreadsMessage.CODEC);
+		register(ID_REP_THREADS, ReplyThreadsMessage.CODEC);
+		//
 		register(ID_BROADCAST_LOADER, BroadcastClassloaderMessage.CODEC);
 		register(ID_BROADCAST_CLASS, BroadcastClassMessage.CODEC);
 	}

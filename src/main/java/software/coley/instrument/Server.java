@@ -1,6 +1,7 @@
 package software.coley.instrument;
 
 import software.coley.instrument.data.MemberData;
+import software.coley.instrument.data.ThreadData;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.message.AbstractMessage;
 import software.coley.instrument.message.MessageFactory;
@@ -23,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Server which exposes capabilities of {@link Instrumentation} to a client.
@@ -174,6 +176,9 @@ public class Server {
 		// Setup response handling
 		InstrumentationHelper inst = instrumentation;
 		answer(ch, RequestPingMessage.class, ReplyPingMessage::new);
+		answer(ch, RequestThreadsMessage.class, () -> new ReplyThreadsMessage(Thread.getAllStackTraces().keySet().stream()
+				.map(ThreadData::new)
+				.collect(Collectors.toList())));
 		answer(ch, RequestPropertiesMessage.class, () -> new ReplyPropertiesMessage(System.getProperties()));
 		answer(ch, RequestSetPropertyMessage.class, req -> {
 			System.getProperties().put(req.getKey(), req.getValue());

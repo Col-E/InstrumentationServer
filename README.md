@@ -85,6 +85,7 @@ The available request/response messages:
 | `RequestPropertiesMessage`         | `ReplyPropertiesMessage`         | Get the `System.getProperties()` values. |
 | `RequestRedefineMessage`           | `ReplyRedefineMessage`           | Redefine a class. |
 | `RequestSetPropertyMessage`        | `ReplySetPropertyMessage`        | Set a value within the `System.getProperties()`. |
+| `RequestThreadsMessage`            | `ReplyThreadsMessage`            | Get thread information about all running threads. |
 
 The available broadcast messages:
 

@@ -12,10 +12,4 @@ import software.coley.instrument.message.reply.ReplyClassloadersMessage;
 public class RequestClassloadersMessage extends AbstractRequestMessage<ReplyClassloadersMessage> {
 	public static final StructureCodec<RequestClassloadersMessage> CODEC =
 			CommonCodecs.emptyMessage(RequestClassloadersMessage::new);
-
-	/**
-	 * Empty request.
-	 */
-	public RequestClassloadersMessage() {
-	}
 }
