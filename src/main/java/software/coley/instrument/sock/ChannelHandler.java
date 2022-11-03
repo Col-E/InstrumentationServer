@@ -40,7 +40,7 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
 public class ChannelHandler {
 	private static final int HEADER_SIZE = 10;
 	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
-	private final ExecutorService eventTaskRunner = Executors.newCachedThreadPool();
+	private final ExecutorService eventTaskRunner = Executors.newCachedThreadPool(new NamedThreadFactory("EVENT"));
 	private final BlockingQueue<WriteResult<?>> writeQueue = new LinkedBlockingQueue<>();
 	private final BlockingQueue<Runnable> eventQueue = new LinkedBlockingQueue<>();
 	private final ByteChannel channel;
@@ -78,7 +78,7 @@ public class ChannelHandler {
 			running = true;
 			readLoopFuture = newSingleThreadExecutor(new NamedThreadFactory("READ")).submit(this::readLoop);
 			writeLoopFuture = newSingleThreadExecutor(new NamedThreadFactory("WRITE")).submit(this::writeLoop);
-			eventLoopFuture = newSingleThreadExecutor(new NamedThreadFactory("EVENT")).submit(this::eventLoop);
+			eventLoopFuture = newSingleThreadExecutor(new NamedThreadFactory("EVENT-LOOP")).submit(this::eventLoop);
 		}
 	}
 
