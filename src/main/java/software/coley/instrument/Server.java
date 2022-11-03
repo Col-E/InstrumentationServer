@@ -143,7 +143,7 @@ public class Server {
 	 * Handles data loop for each new client connection.
 	 */
 	private void acceptLoop() {
-		Executors.newSingleThreadExecutor(new NamedThreadFactory("SERVER-ACCEPT-LOOP")).submit(() -> {
+		Executors.newSingleThreadExecutor(new NamedThreadFactory("ACCEPT")).submit(() -> {
 			try {
 				while (!isClosed()) {
 					SocketChannel accept = serverChannel.accept();

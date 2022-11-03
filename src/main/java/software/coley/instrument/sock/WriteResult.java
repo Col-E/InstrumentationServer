@@ -41,6 +41,13 @@ public class WriteResult<T extends AbstractMessage> {
 	}
 
 	/**
+	 * @return Message type.
+	 */
+	public int getDecoderKey() {
+		return decoderKey;
+	}
+
+	/**
 	 * @return Message content to write.
 	 */
 	public T getValue() {

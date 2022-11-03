@@ -8,16 +8,14 @@ import software.coley.instrument.io.codec.StructureCodec;
 import software.coley.instrument.message.AbstractMessage;
 import software.coley.instrument.message.MessageFactory;
 import software.coley.instrument.message.broadcast.AbstractBroadcastMessage;
+import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.NamedThreadFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
@@ -42,6 +40,7 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
 public class ChannelHandler {
 	private static final int HEADER_SIZE = 10;
 	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
+	private final ExecutorService eventTaskRunner = Executors.newCachedThreadPool();
 	private final BlockingQueue<WriteResult<?>> writeQueue = new LinkedBlockingQueue<>();
 	private final BlockingQueue<Runnable> eventQueue = new LinkedBlockingQueue<>();
 	private final ByteChannel channel;
@@ -120,7 +119,9 @@ public class ChannelHandler {
 	private void eventLoop() {
 		while (running) {
 			try {
-				eventQueue.take().run();
+				Runnable take = eventQueue.take();
+				Logger.debug("Channel event fire");
+				eventTaskRunner.submit(take);
 			} catch (InterruptedException ignored) {
 				// Allowed
 			} catch (Throwable t) {
@@ -149,6 +150,8 @@ public class ChannelHandler {
 				int readFrameId = headerBuffer.getInt();
 				int messageType = headerBuffer.getShort();
 				int messageLength = headerBuffer.getInt();
+				Logger.debug("Channel read-header: " +
+						"id=" + readFrameId + ", type=" + messageType + ", length=" + messageLength);
 				headerBuffer.clear();
 				// Read message content
 				contentBuffer = (messageLength > 0) ? ByteBuffer.allocate(messageLength) : EMPTY_BUFFER;
@@ -161,24 +164,25 @@ public class ChannelHandler {
 				MessageFactory.MessageInfo info = factory.getInfo(messageType);
 				StructureCodec<AbstractMessage> decoder = info.getCodec();
 				AbstractMessage value = decoder.decode(new ByteBufferDataInput(contentBuffer));
+				Logger.debug("Channel read-body: " + value);
 				// Notify listeners
 				if (readFrameId == ApiConstants.BROADCAST_MESSAGE_ID) {
-					if (broadcastListener != null)
-						eventQueue.add(() -> broadcastListener.onReceive(messageType, (AbstractBroadcastMessage) value));
+					if (broadcastListener != null && !eventQueue.offer(() -> broadcastListener.onReceive(messageType, (AbstractBroadcastMessage) value)))
+						Logger.warn("Cannot post-event of read-completion[broadcast], event-queue is full");
 				} else {
 					ResponseListener responseListener = responseListeners.remove(readFrameId);
-					if (responseListener != null)
-						eventQueue.add(() -> responseListener.onReceive(readFrameId, value));
-					if (allResponsesListener != null)
-						eventQueue.add(() -> allResponsesListener.onReceive(readFrameId, value));
+					if (responseListener != null && !eventQueue.offer(() -> responseListener.onReceive(readFrameId, value)))
+						Logger.warn("Cannot post-event of read-completion[response], event-queue is full");
+					if (allResponsesListener != null && !eventQueue.offer(() -> allResponsesListener.onReceive(readFrameId, value)))
+						Logger.warn("Cannot post-event of read-completion[all-response], event-queue is full");
 				}
 			}
-		} catch (Exception ex) {
+		} catch (Throwable t) {
 			// Likely caused because shutdown occurred, can ignore.
 			if (!running)
 				return;
 			// Unknown error, log and close server.
-			ex.printStackTrace();
+			t.printStackTrace();
 			shutdown();
 		}
 	}
@@ -193,6 +197,9 @@ public class ChannelHandler {
 				// Get next write operation
 				WriteResult<?> write = writeQueue.take();
 				// Write header to buffer
+				int writeFrameId = write.getFrameId();
+				Logger.debug("Channel write-header: " +
+						"id=" + writeFrameId + ", type=" + write.getDecoderKey() + ", value=" + write.getValue());
 				output.reset();
 				write.writeHeader(output);
 				// Write content to buffer
@@ -201,24 +208,26 @@ public class ChannelHandler {
 				int contentEnd = output.getBuffer().position();
 				ByteBuffer buffer = output.consume();
 				// Update header's "length" value
-				buffer.putInt(HEADER_SIZE - 4, contentEnd - contentStart);
+				int contentLength = contentEnd - contentStart;
+				buffer.putInt(HEADER_SIZE - 4, contentLength);
 				// Write buffer to channel
 				while (buffer.position() < buffer.limit())
 					channel.write(buffer);
 				write.complete();
+				Logger.debug("Channel write-body: " +
+						"length=" + contentLength);
 				// Notify listener
-				int writeFrameId = write.getFrameId();
-				if (writeListener != null)
-					eventQueue.add(() -> writeListener.onWrite(writeFrameId, write.getValue()));
+				if (writeListener != null && !eventQueue.offer(() -> writeListener.onWrite(writeFrameId, write.getValue())))
+					Logger.warn("Cannot post-event of write-completion, event-queue is full");
 			}
 		} catch (InterruptedException ignored) {
 			// Allowed
-		} catch (Exception ex) {
+		} catch (Throwable t) {
 			// Likely caused because shutdown occurred, can ignore.
 			if (!running)
 				return;
 			// Unknown error, log and close server.
-			ex.printStackTrace();
+			t.printStackTrace();
 		}
 	}
 
