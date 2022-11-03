@@ -2,6 +2,7 @@ package software.coley.instrument;
 
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.message.MessageFactory;
+import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
@@ -27,7 +28,7 @@ public class Agent {
 	 * 		When the server could not be initialized.
 	 */
 	public static void premain(String agentArgs, Instrumentation instrumentation) throws Exception {
-		agent(agentArgs, instrumentation);
+		agent(agentArgs == null ? "" : agentArgs, instrumentation);
 	}
 
 	/**
@@ -40,7 +41,7 @@ public class Agent {
 	 * 		When the server could not be initialized.
 	 */
 	public static void agentmain(String agentArgs, Instrumentation instrumentation) throws Exception {
-		agent(agentArgs, instrumentation);
+		agent(agentArgs == null ? "" : agentArgs, instrumentation);
 	}
 
 	/**
@@ -53,6 +54,12 @@ public class Agent {
 	 * 		When the server could not be initialized.
 	 */
 	private static void agent(String agentArgs, Instrumentation instrumentation) throws IOException {
+		// Configure logging if set, defaults to NONE
+		if (agentArgs.contains("error")) Logger.level = Logger.ERROR;
+		else if (agentArgs.contains("warn")) Logger.level = Logger.WARN;
+		else if (agentArgs.contains("info")) Logger.level = Logger.INFO;
+		else if (agentArgs.contains("debug")) Logger.level = Logger.DEBUG;
+		// Start server
 		if (server == null || server.isClosed()) {
 			// Determine port
 			int port = getPort(agentArgs);
@@ -66,7 +73,7 @@ public class Agent {
 	}
 
 	private static int getPort(String agentArgs) {
-		if (agentArgs != null && agentArgs.contains("port=")) {
+		if (agentArgs.contains("port=")) {
 			try {
 				int startPos = agentArgs.indexOf("port=") + 5;
 				Matcher matcher = Pattern.compile("\\d+")
