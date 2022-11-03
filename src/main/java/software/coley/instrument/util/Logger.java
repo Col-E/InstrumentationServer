@@ -11,7 +11,8 @@ public class Logger {
 	public static final int WARN = 1;
 	public static final int INFO = 2;
 	public static final int DEBUG = 3;
-	public static int level = INFO;
+	public static int level = NONE;
+	public static String prefix = "[Client]";
 
 	/**
 	 * @param message
@@ -50,6 +51,6 @@ public class Logger {
 	}
 
 	private static String fmt(String message) {
-		return String.format("%-12s " + message, "[" + Thread.currentThread().getName() + "]");
+		return prefix +String.format("%-12s " + message, "[" + Thread.currentThread().getName() + "]");
 	}
 }

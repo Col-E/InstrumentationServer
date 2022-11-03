@@ -61,6 +61,7 @@ public class Agent {
 		else if (agentArgs.contains("debug")) Logger.level = Logger.DEBUG;
 		// Start server
 		if (server == null || server.isClosed()) {
+			Logger.prefix = "[Server]";
 			// Determine port
 			int port = getPort(agentArgs);
 			// Create server
