@@ -71,6 +71,12 @@ public class LiveTest {
 				}
 			});
 
+			// Request one class
+			client.sendBlocking(new RequestClassMessage(ApiConstants.SYSTEM_CLASSLOADER_ID, "Runner"),
+					replyClassMessage -> {
+						System.out.println("Runner class: " + replyClassMessage.getData());
+					});
+
 			// Update one key
 			client.sendBlocking(new RequestSetPropertyMessage("key", "new_value"), reply -> {
 				System.out.println("> Key updated");
