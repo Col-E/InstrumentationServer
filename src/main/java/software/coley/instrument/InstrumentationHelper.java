@@ -183,6 +183,8 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 			return "Unknown classloader " + loaderId;
 		Class<?> ref = data.refs.get(className);
 		if (ref == null)
+			ref = data.tryLoad(className);
+		if (ref == null)
 			return "Unknown class '" + className + "' in loader " + loaderId;
 		ClassDefinition def = new ClassDefinition(ref, code);
 		instrumentation.redefineClasses(def);
@@ -228,6 +230,14 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 				refs.put(className, ref);
 			// Broadcast class update
 			server.broadcast(new BroadcastClassMessage(new ClassData(className, loaderInfo.getId(), code)));
+		}
+
+		Class<?> tryLoad(String name) {
+			try {
+				return Class.forName(name.replace('/', '.'), false, loaderInfo.getClassLoader());
+			} catch (Exception ex) {
+				return null;
+			}
 		}
 	}
 }
