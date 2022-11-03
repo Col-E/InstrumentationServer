@@ -234,7 +234,9 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 
 		Class<?> tryLoad(String name) {
 			try {
-				return Class.forName(name.replace('/', '.'), false, loaderInfo.getClassLoader());
+				Class<?> cls = Class.forName(name.replace('/', '.'), false, loaderInfo.getClassLoader());
+				refs.put(name, cls);
+				return cls;
 			} catch (Exception ex) {
 				return null;
 			}
