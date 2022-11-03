@@ -132,8 +132,9 @@ public class Client {
 				if (replyHandler != null)
 					replyHandler.accept(reply);
 				replyFuture.complete(reply);
-			} catch (Exception ex) {
-				replyFuture.completeExceptionally(ex);
+			} catch (Throwable t) {
+				t.printStackTrace();
+				replyFuture.completeExceptionally(t);
 			}
 		});
 		WriteResult<RequestType> writeResult = handler.write(message, frameId);
@@ -147,7 +148,9 @@ public class Client {
 	public synchronized void sendBlocking(AbstractMessage message) {
 		String title = "sending message (without reply expected)";
 		try {
-			sendAsync(message).getFuture().get(MessageConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			WriteResult<AbstractMessage> result = sendAsync(message);
+			title = "sending message[id=" + result.getFrameId() + "] (without reply expected)";
+			result.getFuture().get(MessageConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Logger.error("Client interrupted while " + title);
 			quietClose();
@@ -174,7 +177,10 @@ public class Client {
 	void sendBlocking(RequestType message, Consumer<ReplyType> replyHandler) {
 		String title = "sending message (reply expected)";
 		try {
-			sendAsync(message, replyHandler).getReplyFuture()
+			ReplyResult<RequestType, ReplyType> result = sendAsync(message, replyHandler);
+			WriteResult<RequestType> writeResult = result.getWriteResult();
+			title = "sending message[id=" + writeResult.getFrameId() + "] (reply expected)";
+			result.getReplyFuture()
 					.get(MessageConstants.TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Logger.error("Client interrupted while " + title);
