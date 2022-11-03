@@ -46,10 +46,21 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	@Override
 	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
 							ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-		if (className != null)
+		if (className != null && !isSelf(protectionDomain))
 			getOrCreateDataWrapper(loader)
 					.update(className, classBeingRedefined, classfileBuffer);
 		return classfileBuffer;
+	}
+
+	/**
+	 * @param protectionDomain
+	 * 		Some protection domain.
+	 *
+	 * @return {@code true} when the domain matches the agent's domain.
+	 * Given that the agent is loaded from a jar, no other class, outside of the agent's own, should use this domain.
+	 */
+	private static boolean isSelf(ProtectionDomain protectionDomain) {
+		return Agent.class.getProtectionDomain() == protectionDomain;
 	}
 
 	/**
@@ -82,6 +93,8 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	 */
 	private void populateExisting() {
 		for (Class<?> cls : instrumentation.getAllLoadedClasses()) {
+			if (isSelf(cls.getProtectionDomain()))
+				continue;
 			String name = cls.getName().replace('.', '/');
 			InputStream clsStream = ClassLoader.getSystemResourceAsStream(name + ".class");
 			if (clsStream != null) {
