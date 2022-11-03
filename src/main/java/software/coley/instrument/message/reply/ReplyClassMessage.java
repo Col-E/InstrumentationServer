@@ -26,7 +26,6 @@ public class ReplyClassMessage extends AbstractReplyMessage {
 							output.writeBoolean(false);
 						}
 					});
-	private final boolean hasInfo;
 	private final ClassData data;
 
 	/**
@@ -34,7 +33,6 @@ public class ReplyClassMessage extends AbstractReplyMessage {
 	 */
 	public ReplyClassMessage() {
 		this.data = null;
-		this.hasInfo = false;
 	}
 
 	/**
@@ -43,14 +41,13 @@ public class ReplyClassMessage extends AbstractReplyMessage {
 	 */
 	public ReplyClassMessage(ClassData data) {
 		this.data = data;
-		this.hasInfo = data != null;
 	}
 
 	/**
 	 * @return {@code true} when {@link #getData()} has a value.
 	 */
 	public boolean hasData() {
-		return hasInfo;
+		return data != null && data.hasCode();
 	}
 
 	/**
