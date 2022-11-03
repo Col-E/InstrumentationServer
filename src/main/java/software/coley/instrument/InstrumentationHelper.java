@@ -170,21 +170,24 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	 * @param code
 	 * 		Bytecode to use for redefinition.
 	 *
+	 * @return Failure reason, or {@code null} for success.
+	 *
 	 * @throws UnmodifiableClassException
 	 * 		When the class is not modifiable.
 	 * @throws ClassNotFoundException
 	 * 		When the class is not found.
 	 */
-	public void redefineClass(int loaderId, String className, byte[] code) throws UnmodifiableClassException, ClassNotFoundException {
+	public String redefineClass(int loaderId, String className, byte[] code) throws UnmodifiableClassException, ClassNotFoundException {
 		LoaderData data = loaders.get(loaderId);
 		if (data == null)
-			return;
+			return "Unknown classloader " + loaderId;
 		Class<?> ref = data.refs.get(className);
-		if (ref != null) {
-			ClassDefinition def = new ClassDefinition(ref, code);
-			instrumentation.redefineClasses(def);
-			data.bytecode.put(className, code);
-		}
+		if (ref == null)
+			return "Unknown class '" + className + "' in loader " + loaderId;
+		ClassDefinition def = new ClassDefinition(ref, code);
+		instrumentation.redefineClasses(def);
+		data.bytecode.put(className, code);
+		return null;
 	}
 
 	/**

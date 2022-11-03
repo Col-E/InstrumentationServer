@@ -194,8 +194,11 @@ public class Server {
 		answer(ch, RequestRedefineMessage.class, req -> {
 			inst.lock();
 			try {
-				inst.redefineClass(req.getLoaderId(), req.getClassName(), req.getBytecode());
-				return new ReplyRedefineMessage(ReplyRedefineMessage.MESSAGE_SUCCESS);
+				String message = inst.redefineClass(req.getLoaderId(), req.getClassName(), req.getBytecode());
+				if (message == null)
+					return new ReplyRedefineMessage(ReplyRedefineMessage.MESSAGE_SUCCESS);
+				else
+					return new ReplyRedefineMessage(message);
 			} catch (Exception ex) {
 				return new ReplyRedefineMessage(ex);
 			} finally {

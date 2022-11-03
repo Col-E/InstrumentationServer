@@ -34,7 +34,7 @@ public class ReplyRedefineMessage extends AbstractReplyMessage {
 	 * @return {@code true} when redefine was a success.
 	 */
 	public boolean isSuccess() {
-		return MESSAGE_SUCCESS.endsWith(message);
+		return MESSAGE_SUCCESS.equals(message);
 	}
 
 	/**
