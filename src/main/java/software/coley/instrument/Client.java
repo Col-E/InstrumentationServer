@@ -31,6 +31,8 @@ public class Client {
 	private final InetSocketAddress hostAddress;
 	private final SocketChannel socketChannel;
 	private final ChannelHandler handler;
+	private final String ip;
+	private final int port;
 
 	/**
 	 * @param ip
@@ -49,6 +51,29 @@ public class Client {
 		this.socketChannel = SocketChannel.open();
 		this.hostAddress = new InetSocketAddress(ip, port);
 		this.handler = new ChannelHandler(socketChannel, allocator, factory);
+		this.ip = ip;
+		this.port = port;
+	}
+
+	/**
+	 * @return Address of remote server.
+	 */
+	public InetSocketAddress getHostAddress() {
+		return hostAddress;
+	}
+
+	/**
+	 * @return IP of remote server.
+	 */
+	public String getIp() {
+		return ip;
+	}
+
+	/**
+	 * @return Port of remote server.
+	 */
+	public int getPort() {
+		return port;
 	}
 
 	/**
