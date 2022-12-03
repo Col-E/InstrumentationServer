@@ -1,4 +1,4 @@
-# Instrumentation Server
+# Instrumentation Server [![](https://jitpack.io/v/Col-E/InstrumentationServer.svg)](https://jitpack.io/#Col-E/InstrumentationServer)
 
 A minimal client-server library that allows simple interaction with a remote process's `Instrumentation` API over a message system.
 
