@@ -1,6 +1,5 @@
 package software.coley.instrument;
 
-import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.Streams;
 
 import java.io.IOException;
@@ -40,10 +39,13 @@ public class Extractor {
 
 	public static List<Item> collectSelfItems() throws IOException {
 		URL selfLocation = Extractor.class.getProtectionDomain().getCodeSource().getLocation();
-		String selfFilePath = selfLocation.getFile();
+		String selfFilePath = selfLocation.getPath();
 		if (selfFilePath.startsWith("/"))
 			selfFilePath = selfFilePath.substring(1);
 		Path selfPath = Paths.get(selfFilePath);
+		if (!Files.exists(selfPath))
+			throw new IOException("Source-path of extractor does not exist: " + selfPath);
+
 		// Get self-classes
 		List<Item> list = new ArrayList<>();
 		String prefix = Extractor.class.getPackage().getName().replace('.', '/');
@@ -74,7 +76,7 @@ public class Extractor {
 						}
 					});
 		} else {
-			Logger.error("Source-path of extractor cannot be found: " + selfPath);
+			throw new IOException("Source-path of extractor exists, but is not a file or directory: " + selfPath);
 		}
 		return list;
 	}
