@@ -3,6 +3,7 @@ package software.coley.instrument;
 import software.coley.instrument.util.Streams;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,11 +39,12 @@ public class Extractor {
 	}
 
 	public static List<Item> collectSelfItems() throws IOException {
-		URL selfLocation = Extractor.class.getProtectionDomain().getCodeSource().getLocation();
-		String selfFilePath = selfLocation.getPath();
-		if (selfFilePath.startsWith("/"))
-			selfFilePath = selfFilePath.substring(1);
-		Path selfPath = Paths.get(selfFilePath);
+		Path selfPath;
+		try {
+			selfPath = Paths.get(Extractor.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+		} catch (URISyntaxException syntaxException) {
+			throw new IOException(syntaxException);
+		}
 		if (!Files.exists(selfPath))
 			throw new IOException("Source-path of extractor does not exist: " + selfPath);
 
