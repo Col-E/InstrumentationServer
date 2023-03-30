@@ -1,0 +1,31 @@
+project:
+  name: instrumentation-server
+  description: Client-server library for remote JVM instrumentation
+  longDescription: Minimal client-server library for interacting with remote JVM instrumentation instances
+  links:
+    homepage: https://github.com/Col-E/InstrumentationServer
+  authors:
+    - Matt Coley
+  license: MIT
+  inceptionYear: 2022
+  stereotype: none
+  java:
+    version: 11
+    groupId: software.coley
+    artifactId: instrumentation-server
+
+release:
+  github:
+    overwrite: true
+    tagName: '{{projectVersion}}'
+    changelog:
+      formatted: ALWAYS
+      preset: conventional-commits
+      contributors:
+        format: '- {{contributorName}}{{#contributorUsernameAsLink}} ({{.}}){{/contributorUsernameAsLink}}'
+
+distributions:
+  dist:
+    type: SINGLE_JAR
+    artifacts:
+      - path: target/{{projectName}}-{{projectVersion}}.jar
