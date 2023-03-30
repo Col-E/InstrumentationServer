@@ -1,5 +1,6 @@
 package software.coley.instrument;
 
+import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.Streams;
 
 import java.io.IOException;
@@ -59,7 +60,7 @@ public class Extractor {
 						list.add(new Item(entry.getName(), Streams.readStream(file.getInputStream(entry))));
 				}
 			}
-		} else {
+		} else if (Files.isDirectory(selfPath)) {
 			Files.walk(selfPath)
 					.filter(path -> !Files.isDirectory(path) && path.toString().endsWith(".class"))
 					.forEach(path -> {
@@ -72,6 +73,8 @@ public class Extractor {
 							}
 						}
 					});
+		} else {
+			Logger.error("Source-path of extractor cannot be found: " + selfPath);
 		}
 		return list;
 	}
