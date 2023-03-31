@@ -60,7 +60,8 @@ public class LiveTest {
 		try {
 			// Start the java-agent on the 'Runner' example application
 			String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/");
-			ProcessBuilder pb = new ProcessBuilder("C:\\Program Files\\AdoptOpenJDK\\jdk-17\\bin\\java", agent, "-cp", "src/test/resources", "Runner");
+//			ProcessBuilder pb = new ProcessBuilder("C:\\Program Files\\AdoptOpenJDK\\jdk-17\\bin\\java", agent, "-cp", "src/test/resources", "Runner");
+			ProcessBuilder pb = new ProcessBuilder("/usr/lib/jvm/java-17-openjdk/bin/java", agent, "-cp", "src/test/resources", "Runner");
 			pb.inheritIO();
 			start = pb.start();
 

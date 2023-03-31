@@ -35,7 +35,10 @@ jobs:
         with:
           distribution: adopt-hotspot
           java-version: ${{ matrix.java-version }}
-      
+
+      - name: DELETE ME - Find java file in GitHub Server, SO ${{matrix.os}}
+        run: find / -type f -name "java" 2>/dev/null
+
       # Run tests & build artifact
       - name: Run tests & build release
         run: ./mvnw package
