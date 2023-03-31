@@ -3,7 +3,6 @@ package software.coley.instrument;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.condition.DisabledIf;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import software.coley.instrument.data.ClassLoaderInfo;
 import software.coley.instrument.data.MemberData;
@@ -19,7 +18,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
