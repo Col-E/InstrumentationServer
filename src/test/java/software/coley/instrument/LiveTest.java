@@ -2,6 +2,7 @@ package software.coley.instrument;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import software.coley.instrument.data.ClassLoaderInfo;
 import software.coley.instrument.data.MemberData;
@@ -43,6 +44,7 @@ public class LiveTest {
 	}
 
 	@Test
+	@Timeout(15) // Just in case there are regressions causing a lock-up
 	@ResourceLock(SERVER) // Use this lock on other tests if they get split later
 	public void test() throws Exception {
 		Process start = null;

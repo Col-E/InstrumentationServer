@@ -5,9 +5,14 @@ import java.nio.ByteBuffer;
 
 /**
  * Wrapper of {@link ByteBuffer}.
+ * <br>
+ * Redundant casts exist to resolve
+ * <a href="https://stackoverflow.com/questions/61267495/exception-in-thread-main-java-lang-nosuchmethoderror-java-nio-bytebuffer-flip#61267496">
+ * compatibility between JDK 8/9</a>.
  *
  * @author xxDark
  */
+@SuppressWarnings("RedundantCast")
 public final class ByteBufferSanitizer {
 	private static final ByteBuffer EMPTY = ByteBuffer.wrap(new byte[0]);
 	private final ByteBufferAllocator allocator;
@@ -34,7 +39,7 @@ public final class ByteBufferSanitizer {
 	 * @see ByteBuffer#clear()
 	 */
 	public void clear() {
-		((Buffer)buffer).clear();
+		((Buffer) buffer).clear();
 	}
 
 	/**
@@ -45,7 +50,7 @@ public final class ByteBufferSanitizer {
 	 */
 	public ByteBuffer consume() {
 		ByteBuffer buffer = this.buffer;
-		((Buffer)buffer).flip();
+		((Buffer) buffer).flip();
 		return buffer;
 	}
 
@@ -65,7 +70,7 @@ public final class ByteBufferSanitizer {
 			int pos = buffer.position();
 			size = Integer.highestOneBit(pos + size - 1) << 1;
 			ByteBuffer newBuffer = allocator.allocate(size);
-			((Buffer)buffer).position(0).limit(pos);
+			((Buffer) buffer).position(0).limit(pos);
 			newBuffer.put(buffer);
 			buffer = newBuffer;
 			this.buffer = buffer;

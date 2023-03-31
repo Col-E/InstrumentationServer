@@ -102,13 +102,14 @@ public final class ByteBufferDataInput implements DataInput {
 	 * @see UncheckedIOException#getCause()
 	 */
 	@Override
+	@SuppressWarnings("RedundantCast")
 	public String readUTF() {
 		ByteBuffer buffer = this.buffer;
 		int len = buffer.getInt();
 		// Calling slice allows us to limit and set position to 0,
 		// so we can update the actual buffer after decoding is done.
 		ByteBuffer slice = buffer.slice().order(buffer.order());
-		((Buffer)slice).limit(len);
+		((Buffer) slice).limit(len);
 		CharBuffer cb;
 		try {
 			cb = StandardCharsets.UTF_8.newDecoder().decode(slice);

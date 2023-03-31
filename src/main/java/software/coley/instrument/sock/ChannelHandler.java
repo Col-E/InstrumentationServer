@@ -34,10 +34,15 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
  * All reading is done on-loop in the {@code READ} thread.
  * <br>
  * Any handling of read or written messages queues an action on the {@code EVENT} thread.
+ * <br>
+ * Redundant casts exist to resolve
+ * <a href="https://stackoverflow.com/questions/61267495/exception-in-thread-main-java-lang-nosuchmethoderror-java-nio-bytebuffer-flip#61267496">
+ * compatibility between JDK 8/9</a>.
  *
  * @author Matt Coley
  * @author xxDark
  */
+@SuppressWarnings("RedundantCast")
 public class ChannelHandler {
 	private static final int HEADER_SIZE = 10;
 	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
@@ -147,13 +152,13 @@ public class ChannelHandler {
 				// Read next message header
 				while (headerBuffer.position() < HEADER_SIZE)
 					channel.read(headerBuffer);
-				((Buffer)headerBuffer).position(0);
+				((Buffer) headerBuffer).position(0);
 				int readFrameId = headerBuffer.getInt();
 				int messageType = headerBuffer.getShort();
 				int messageLength = headerBuffer.getInt();
 				Logger.debug("Channel read-header: " +
 						"id=" + readFrameId + ", type=" + messageType + ", length=" + messageLength);
-				((Buffer)headerBuffer).clear();
+				((Buffer) headerBuffer).clear();
 				// Read message content
 				contentBuffer = (messageLength > 0) ? ByteBuffer.allocate(messageLength) : EMPTY_BUFFER;
 				while (contentBuffer.position() < messageLength) {
@@ -161,7 +166,7 @@ public class ChannelHandler {
 					if (reads == -1)
 						throw new ClosedChannelException();
 				}
-				((Buffer)contentBuffer).position(0);
+				((Buffer) contentBuffer).position(0);
 				MessageFactory.MessageInfo info = factory.getInfo(messageType);
 				StructureCodec<AbstractMessage> decoder = info.getCodec();
 				AbstractMessage value = decoder.decode(new ByteBufferDataInput(contentBuffer));
