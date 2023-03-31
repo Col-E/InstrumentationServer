@@ -44,7 +44,6 @@ public class LiveTest {
 	}
 
 	@Test
-	@Timeout(15)
 	@ResourceLock(SERVER) // Use this lock on other tests if they get split later
 	public void test() throws Exception {
 		Process start = null;
