@@ -10,7 +10,7 @@ import java.util.Properties;
  * @author Matt Coley
  */
 public class Discovery {
-	private static final String PREFIX = System.getProperty("os.arch") + "-";
+	private static final String PREFIX = "Discovery-" + System.getProperty("os.arch") + "-";
 	private static final String SUFFIX = ".jar";
 
 	/**
@@ -38,6 +38,9 @@ public class Discovery {
 	}
 
 	/**
+	 * @param port
+	 * 		Port to broadcast on.
+	 *
 	 * @return Name to use for discovery file.
 	 */
 	public static String createDiscoveryName(int port) {
@@ -46,6 +49,9 @@ public class Discovery {
 
 	/**
 	 * Update the system properties to add a hint of what port we're running on.
+	 *
+	 * @param port
+	 * 		Port to broadcast on.
 	 */
 	public static void setupDiscovery(int port) {
 		String path = System.getProperty("java.class.path", null);
@@ -60,6 +66,9 @@ public class Discovery {
 
 	/**
 	 * Update the system properties to remove the port hint.
+	 *
+	 * @param port
+	 * 		Port to broadcast on.
 	 */
 	public static void removeDiscovery(int port) {
 		String path = System.getProperty("java.class.path", null);

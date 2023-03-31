@@ -106,6 +106,9 @@ public class Client {
 
 	/**
 	 * Close connection.
+	 *
+	 * @throws IOException
+	 * 		When the underlying socket-channel {@link SocketChannel#close()} throws.
 	 */
 	public void close() throws IOException {
 		handler.shutdown();
@@ -127,6 +130,8 @@ public class Client {
 	/**
 	 * @param message
 	 * 		Message to send.
+	 * @param <T>
+	 * 		Message type.
 	 *
 	 * @return Write completion.
 	 */

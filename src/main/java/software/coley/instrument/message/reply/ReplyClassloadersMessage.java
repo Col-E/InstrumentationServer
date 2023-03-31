@@ -22,6 +22,8 @@ public class ReplyClassloadersMessage extends AbstractReplyMessage {
 	/**
 	 * @param classLoaders
 	 * 		Reply value.
+	 * @param <T>
+	 * 		Collection type, subtype of {@link ClassLoaderInfo} depending on usage.
 	 */
 	@SuppressWarnings("unchecked")
 	public <T extends ClassLoaderInfo> ReplyClassloadersMessage(Collection<T> classLoaders) {
