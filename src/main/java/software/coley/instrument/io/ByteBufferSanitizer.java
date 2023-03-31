@@ -1,5 +1,6 @@
 package software.coley.instrument.io;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 /**
@@ -33,7 +34,7 @@ public final class ByteBufferSanitizer {
 	 * @see ByteBuffer#clear()
 	 */
 	public void clear() {
-		buffer.clear();
+		((Buffer)buffer).clear();
 	}
 
 	/**
@@ -44,7 +45,7 @@ public final class ByteBufferSanitizer {
 	 */
 	public ByteBuffer consume() {
 		ByteBuffer buffer = this.buffer;
-		buffer.flip();
+		((Buffer)buffer).flip();
 		return buffer;
 	}
 
@@ -64,7 +65,7 @@ public final class ByteBufferSanitizer {
 			int pos = buffer.position();
 			size = Integer.highestOneBit(pos + size - 1) << 1;
 			ByteBuffer newBuffer = allocator.allocate(size);
-			buffer.position(0).limit(pos);
+			((Buffer)buffer).position(0).limit(pos);
 			newBuffer.put(buffer);
 			buffer = newBuffer;
 			this.buffer = buffer;

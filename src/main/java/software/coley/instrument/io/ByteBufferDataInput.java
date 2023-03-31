@@ -2,6 +2,7 @@ package software.coley.instrument.io;
 
 import java.io.DataInput;
 import java.io.UncheckedIOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -107,7 +108,7 @@ public final class ByteBufferDataInput implements DataInput {
 		// Calling slice allows us to limit and set position to 0,
 		// so we can update the actual buffer after decoding is done.
 		ByteBuffer slice = buffer.slice().order(buffer.order());
-		slice.limit(len);
+		((Buffer)slice).limit(len);
 		CharBuffer cb;
 		try {
 			cb = StandardCharsets.UTF_8.newDecoder().decode(slice);

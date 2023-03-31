@@ -11,6 +11,7 @@ import software.coley.instrument.message.broadcast.AbstractBroadcastMessage;
 import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.NamedThreadFactory;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
@@ -146,13 +147,13 @@ public class ChannelHandler {
 				// Read next message header
 				while (headerBuffer.position() < HEADER_SIZE)
 					channel.read(headerBuffer);
-				headerBuffer.position(0);
+				((Buffer)headerBuffer).position(0);
 				int readFrameId = headerBuffer.getInt();
 				int messageType = headerBuffer.getShort();
 				int messageLength = headerBuffer.getInt();
 				Logger.debug("Channel read-header: " +
 						"id=" + readFrameId + ", type=" + messageType + ", length=" + messageLength);
-				headerBuffer.clear();
+				((Buffer)headerBuffer).clear();
 				// Read message content
 				contentBuffer = (messageLength > 0) ? ByteBuffer.allocate(messageLength) : EMPTY_BUFFER;
 				while (contentBuffer.position() < messageLength) {
@@ -160,7 +161,7 @@ public class ChannelHandler {
 					if (reads == -1)
 						throw new ClosedChannelException();
 				}
-				contentBuffer.position(0);
+				((Buffer)contentBuffer).position(0);
 				MessageFactory.MessageInfo info = factory.getInfo(messageType);
 				StructureCodec<AbstractMessage> decoder = info.getCodec();
 				AbstractMessage value = decoder.decode(new ByteBufferDataInput(contentBuffer));

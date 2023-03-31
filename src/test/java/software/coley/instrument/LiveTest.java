@@ -19,22 +19,24 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Demo setup using the {@code Runner} example class.
  */
-@DisabledIf("checkIsCiServer")
+//@DisabledIf("checkIsCiServer")
 public class LiveTest {
 	private static final String SERVER = "Server";
 	private static Path agentJarPath;
 
-	public static boolean checkIsCiServer() {
-		// I have no idea why attach doesn't work on CI.
-		// It works locally on Java 8-17 just fine.
-		return System.getProperty("user.dir").contains("/home/runner/");
-	}
+//	public static boolean checkIsCiServer() {
+//		// I have no idea why attach doesn't work on CI.
+//		// It works locally on Java 8-17 just fine.
+//		System.out.println("System.getProperty('user.dir'): " + System.getProperty("user.dir"));
+//		return System.getProperty("user.dir").contains("/home/runner/");
+//	}
 
 	@BeforeAll
 	public static void setup() {
@@ -61,9 +63,34 @@ public class LiveTest {
 			// Start the java-agent on the 'Runner' example application
 			String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/");
 //			ProcessBuilder pb = new ProcessBuilder("C:\\Program Files\\AdoptOpenJDK\\jdk-17\\bin\\java", agent, "-cp", "src/test/resources", "Runner");
-			ProcessBuilder pb = new ProcessBuilder("/usr/lib/jvm/java-17-openjdk/bin/java", agent, "-cp", "src/test/resources", "Runner");
+			ProcessBuilder pb = new ProcessBuilder("java", agent, "-cp", "src/test/resources", "Runner");
+//			pb.environment().replace("_", "/usr/lib/jvm/java-17-openjdk/bin/java");
+//			ProcessBuilder pb = new ProcessBuilder("/usr/lib/jvm/java-8-openjdk/jre/bin/java", agent, "-cp", "src/test/resources", "Runner");
+//			ProcessBuilder pb = new ProcessBuilder("/usr/lib/jvm/java-11-openjdk/bin/java", agent, "-cp", "src/test/resources", "Runner");
+//			ProcessBuilder pb = new ProcessBuilder("/usr/lib/jvm/java-17-openjdk/bin/java", agent, "-cp", "src/test/resources", "Runner");
+//			ProcessBuilder pb = new ProcessBuilder("/usr/lib/jvm/java-19-openjdk/bin/java", agent, "-cp", "src/test/resources", "Runner");
+//			ProcessBuilder pb = new ProcessBuilder("/home/wolf/.jdks/corretto-18.0.2/bin/java", agent, "-cp", "src/test/resources", "Runner");
+//			ProcessBuilder pb = new ProcessBuilder("/home/wolf/.jdks/corretto-19.0.2/bin/java", agent, "-cp", "src/test/resources", "Runner");
+//			ProcessBuilder pb = new ProcessBuilder("/home/wolf/.jdks/openjdk-20/bin/java", agent, "-cp", "src/test/resources", "Runner");
+//			ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", "java", agent, "-cp", "src/test/resources", "Runner");
+			System.out.println("pb: " + pb);
+			System.out.println("pb.directory(): " + pb.directory());
+			// map view of this process builder's environment
+			Map<String, String> envMap = pb.environment();
+			// checking map view of environment
+			for (Map.Entry<String, String> entry :
+					envMap.entrySet()) {
+				// checking key and value separately
+				System.out.println(entry.getKey()
+						+ ": "
+						+ entry.getValue());
+			}
+			System.out.println("---");
+			System.out.println("_: " + pb.environment().get("_"));
 			pb.inheritIO();
 			start = pb.start();
+			System.out.println("pb: " + pb);
+			System.out.println("pb.directory(): " + pb.directory());
 
 			// Setup our local client
 			Thread.sleep(1500);
