@@ -65,13 +65,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: can release
-        run: echo "can-release -> ${{ can-release }}"
+        run: echo "can-release -> ${{ env.can-release }}"
       - name: can release 2
-        run: echo "can-release-2 -> ${{ can-release-2 }}"
+        run: echo "can-release-2 -> ${{ env.can-release-2 }}"
       - name: can release 3
-        run: echo "can-release-2 -> ${{ can-release-2 }}"
+        run: echo "can-release-2 -> ${{ env.can-release-2 }}"
       - name: can release 4
-        run: echo "can-release-2 -> ${{ can-release-2 }}"
+        run: echo "can-release-2 -> ${{ env.can-release-2 }}"
 #
 #      - name: Setup Java JDK
 #        uses: actions/setup-java@v3
