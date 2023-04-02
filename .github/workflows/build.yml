@@ -46,7 +46,6 @@ permissions:
 
 env:
   can-release: ${{ inputs.is-a-release }}
-  can-release-1: ${{ inputs.is-a-release }} || false
   can-release-2: ${{ github.repository == 'airvzxf/InstrumentationServer' && inputs.is-a-release }}
   can-release-3: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
   can-release-4: ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
@@ -67,14 +66,21 @@ jobs:
         uses: actions/checkout@v3
       - name: can release
         run: echo "can-release -> ${{ env.can-release }}"
-      - name: can release 1
-        run: echo "can-release-1 -> ${{ env.can-release-1 }}"
       - name: can release 2
         run: echo "can-release-2 -> ${{ env.can-release-2 }}"
       - name: can release 3
         run: echo "can-release-2 -> ${{ env.can-release-2 }}"
       - name: can release 4
         run: echo "can-release-2 -> ${{ env.can-release-2 }}"
+      - name: can release empty
+        if: ${{ env.can-release }}
+        run: echo "can-release Empty"
+      - name: can release false
+        if: ${{ env.can-release == false }}
+        run: echo "can-release False"
+      - name: can release true
+        if: ${{ env.can-release == true }}
+        run: echo "can-release True"
 #
 #      - name: Setup Java JDK
 #        uses: actions/setup-java@v3
