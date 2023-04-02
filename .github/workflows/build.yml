@@ -46,6 +46,7 @@ permissions:
 
 env:
   can-release: ${{ inputs.is-a-release }}
+  can-release-1: ${{ inputs.is-a-release }} || false
   can-release-2: ${{ github.repository == 'airvzxf/InstrumentationServer' && inputs.is-a-release }}
   can-release-3: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
   can-release-4: ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
@@ -66,6 +67,8 @@ jobs:
         uses: actions/checkout@v3
       - name: can release
         run: echo "can-release -> ${{ env.can-release }}"
+      - name: can release 1
+        run: echo "can-release-1 -> ${{ env.can-release-1 }}"
       - name: can release 2
         run: echo "can-release-2 -> ${{ env.can-release-2 }}"
       - name: can release 3
@@ -139,23 +142,10 @@ jobs:
         run: git tag
       - name: git tag wc
         run: git tag | wc -l
-      - name: github.repository
-        run: echo "${{ github.repository }}"
-      - name: github.event.repository.full_name
-        run: echo "${{ github.event.repository.full_name }}"
-      - name: github.event.repository.name
-        run: echo "${{ github.event.repository.name }}"
-      - name: Dump github context
-        run: echo "$GITHUB_CONTEXT"
-        shell: bash
-        env:
-         GITHUB_CONTEXT: ${{ toJson(github) }}
-      - name: Tag version exists
+      - name: Tag information
         run: |
-          echo "The tag version exists."
           echo "PROJECT_VERSION: ${{ env.PROJECT_VERSION }}"
           echo "tagExists: ${{ env.tagExists }}"
-          git show-ref --tags --abbrev
       - name: Tag version exists
         if: steps.tagged.outputs.tagExists
         run: |
