@@ -19,8 +19,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        java-version: [ 8.0.232, 8.0.282+8, 11.0, 11.0.4, 15-ea, 15.0.0-ea, 15.0.0-ea.2, 15.0.0+2-ea, 16, 17.0 ]
+#        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ ubuntu-latest ]
+        java-version: [ 8.0.232, 8u361, 11, 11.0.18, 16, 17.0, 17.0.6, 19.0.2, 20 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -33,6 +34,9 @@ jobs:
         with:
           distribution: adopt-hotspot
           java-version: ${{ matrix.java-version }}
+
+      - name: Java version
+        run: java -version
 
       # The project version extract NEEDS to have the maven wrapper already downloaded.
       # So we have a dummy step here just to initialize it.
