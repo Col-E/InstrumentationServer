@@ -22,14 +22,12 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
 #        os: [ ubuntu-latest ]
         java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
-#        java-version: [ 8.0.322+6, 8.0.332+9, 8.0.345+1, 8.0.352+8, 8.0.362+9, 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Required depth for JReleaser
+
       - name: Setup Java JDK
         uses: actions/setup-java@v3
         with:
@@ -44,25 +42,5 @@ jobs:
       - name: Download maven wrapper
         run: ./mvnw --version
 
-      # Set environment variable for the project version: "var_to_set=$(command_to_run)" >> sink
-      #  - For maven:  echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-      #  - For gradle: echo "PROJECT_VERSION=$(./gradlew properties | grep -Po '(?<=version: ).*')" >> $GITHUB_ENV
-      - name: O.o
-        run: ./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout
-
-      - name: Extract project version to environment variable
-        run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-
-      # Check if a tag exists that matches the current project version.
-      # Write the existence state to the step output 'tagExists'.
-      - name: 'Check: package version has corresponding git tag'
-        id: tagged
-        shell: bash
-        run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
-
-      # Run build.
-      # Either the tag exists, or the trigger was not a manual one.
-      # Without explicit intent we do not want to publish a release.
       - name: Build and Test
-        if: steps.tagged.outputs.tagExists == 1 || github.event_name != 'workflow_dispatch'
         run: ./mvnw test
