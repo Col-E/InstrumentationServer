@@ -126,6 +126,11 @@ jobs:
         run: git tag | wc -l
       - name: repository name
         run: echo "${{ github.event.repository.name }}"
+      - name: Dump github context
+        run: echo "$GITHUB_CONTEXT"
+        shell: bash
+        env:
+         GITHUB_CONTEXT: ${{ toJson(github) }}
       - name: Tag version exists
         run: |
           echo "The tag version exists."
