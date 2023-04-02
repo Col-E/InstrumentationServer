@@ -10,21 +10,8 @@ on:
   workflow_dispatch:
     inputs:
       is-a-release:
-        type: choice
-        description: Is this a release? (Choice)
-        options:
-          - No
-          - Yes
-          - Hello
-          - Bye
-      is-a-release-boolean:
-        description: Do you want to release? (Boolean)
+        description: Do you want to release?
         type: boolean
-        default: true
-      is-a-release-boolean-2:
-        description: Do you want to release? (Boolean-2)
-        type: boolean
-        default: false
       operative-system:
         type: choice
         description: Chose the Operative System
@@ -38,7 +25,7 @@ on:
         default: ubuntu-latest
       java-version:
         type: choice
-        description: Chose the Operative System
+        description: Chose the Java version
         options:
           - 19
           - 18
@@ -52,57 +39,33 @@ on:
           - 8
         default: 17
 
-
 permissions:
   checks: write
   contents: write
   pull-requests: write
 
 jobs:
-  hi:
+  condition-without-equal:
+    if: ${{ inputs.is-a-release }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: is-a-release
-        run: echo "${{ inputs.is-a-release }}"
-      - name: is-a-release-boolean
-        run: echo "${{ inputs.is-a-release-boolean }}"
-      - name: is-a-release-boolean-2
-        run: echo "${{ inputs.is-a-release-boolean-2 }}"
-      - name: operative-system
-        run: echo "${{ inputs.operative-system }}"
-      - name: java-version
-        run: echo "${{ inputs.java-version }}"
-
-      - name: is-a-release-true
-        if: ${{ inputs.is-a-release == true }}
-        run: echo "inputs.is-a-release true"
-      - name: is-a-release-no
-        if: ${{ inputs.is-a-release == false }}
-        run: echo "inputs.is-a-release false"
-      - name: is-a-release-hello
-        if: ${{ inputs.is-a-release == 'Hello' }}
-        run: echo "inputs.is-a-release Hello"
-      - name: is-a-release-bye
-        if: ${{ inputs.is-a-release == 'Bye' }}
-        run: echo "inputs.is-a-release Bye"
-
-      - name: is-a-release-boolean-yes
-        if: ${{ inputs.is-a-release-boolean == true }}
-        run: echo "inputs.is-a-release-boolean true"
-      - name: is-a-release-boolean-no
-        if: ${{ inputs.is-a-release-boolean == false }}
-        run: echo "inputs.is-a-release-boolean false"
-
-      - name: is-a-release-boolean-2-yes
-        if: ${{ inputs.is-a-release-boolean-2 == true }}
-        run: echo "inputs.is-a-release-boolean-2 true"
-      - name: is-a-release-boolean-2-no
-        if: ${{ inputs.is-a-release-boolean-2 == false }}
-        run: echo "inputs.is-a-release-boolean-2 false"
-
+      - name: Let's go
+        runs: echo "Yes"
+  condition-with-equal-true:
+    if: ${{ inputs.is-a-release == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Let's go
+        runs: echo "Yes"
+  condition-with-equal-false:
+    if: ${{ inputs.is-a-release == false }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Let's go
+        runs: echo "Yes"
+#
 #  test-multiple-os:
+#    if: ${{ inputs.is-a-release }}
 #    strategy:
 #      fail-fast: false
 #      matrix:
@@ -135,7 +98,7 @@ jobs:
 #
 #  build:
 #    needs: test-multiple-os
-#    if: ${{ github.event_name == 'workflow_dispatch' }}
+#    if: ${{ inputs.is-a-release == false }}
 #    strategy:
 #      fail-fast: false
 #    runs-on: ${{ inputs.operative-system }}
@@ -217,7 +180,7 @@ jobs:
 #  #  - Required for test-results to be published
 #  event_file:
 #    needs: build
-#    if: ${{ github.event_name == 'workflow_dispatch' }}
+#    if: ${{ inputs.is-a-release == false }}
 #    name: "Event File"
 #    runs-on: ubuntu-latest
 #    steps:
@@ -229,7 +192,7 @@ jobs:
 #
 #  unit-test-results:
 #    needs: event_file
-#    if: ${{ github.event_name == 'workflow_dispatch' }}
+#    if: ${{ inputs.is-a-release == false }}
 #    name: Unit Test Results
 #    runs-on: ubuntu-latest
 #    steps:
