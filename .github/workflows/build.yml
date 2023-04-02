@@ -45,175 +45,162 @@ permissions:
   pull-requests: write
 
 jobs:
-  condition-without-equal:
+  test-multiple-os:
+    strategy:
+      fail-fast: false
+      matrix:
+#        os: [ ubuntu-latest, windows-latest, macos-latest ]
+#        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
+        os: [ ubuntu-latest ]
+        java-version: [ 8 ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: adopt-hotspot
+          java-version: ${{ matrix.java-version }}
+
+      - name: Java version
+        run: java -version
+
+      # The project version extract NEEDS to have the maven wrapper already downloaded.
+      # So we have a dummy step here just to initialize it.
+      - name: Download maven wrapper
+        run: ./mvnw --version
+
+      - name: Build and Test
+        run: ./mvnw test
+
+  build:
+    needs: test-multiple-os
     if: ${{ inputs.is-a-release }}
+    strategy:
+      fail-fast: false
+    runs-on: ${{ inputs.operative-system }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Required depth for JReleaser
+      - name: OS runs
+        run: echo ${{ env.release-os }}
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: adopt-hotspot
+          java-version: ${{ inputs.java-version }}
+
+      # The project version extract NEEDS to have the maven wrapper already downloaded.
+      # So we have a dummy step here just to initialize it.
+      - name: Download maven wrapper
+        run: ./mvnw --version
+
+      # Set environment variable for the project version: "var_to_set=$(command_to_run)" >> sink
+      #  - For maven:  echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+      #  - For gradle: echo "PROJECT_VERSION=$(./gradlew properties | grep -Po '(?<=version: ).*')" >> $GITHUB_ENV
+      - name: Extract project version to environment variable
+        run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+
+      # Check if a tag exists that matches the current project version.
+      # Write the existence state to the step output 'tagExists'.
+      - name: 'Check: package version has corresponding git tag'
+        id: tagged
+        shell: bash
+        run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
+
+      # If the tag exits, show a message with the existing tags.
+      - name: Tag version exists
+        if: steps.tagged.outputs.tagExists
+        run: |
+          echo "The tag version (${{ env.PROJECT_VERSION }}) exists:"
+          git show-ref --tags
+
+      # Run build.
+      # Tag does not exist AND trigger was manual. Deploy release artifacts!
+      - name: Build release
+        if: steps.tagged.outputs.tagExists == 0
+        run: ./mvnw deploy -Prelease -DaltDeploymentRepository=local::default::file:./target/staging-deploy
+
+      # Upload test results
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v2.3.1
+        if: always()
+        with:
+          name: Event File
+          retention-days: 21
+          path: |
+            **/TEST-*
+            **/hs_err_pid*
+
+      # Make release with JReleaser, only running when the project version does not exist as a tag on the repository.
+      - name: Release
+        if: steps.tagged.outputs.tagExists == 0
+        uses: jreleaser/release-action@v2
+        with:
+          arguments: full-release
+        env:
+          JRELEASER_PROJECT_VERSION: ${{ env.PROJECT_VERSION }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
+          JRELEASER_NEXUS2_USERNAME: ${{ secrets.JRELEASER_DEPLOY_MAVEN_NEXUS2_USERNAME }}
+          JRELEASER_NEXUS2_PASSWORD: ${{ secrets.JRELEASER_DEPLOY_MAVEN_NEXUS2_PASSWORD }}
+
+      # Upload JRelease debug log
+      - name: JReleaser output
+        if: steps.tagged.outputs.tagExists == 0
+        uses: actions/upload-artifact@v3
+        with:
+          name: jreleaser-release
+          path: |
+            out/jreleaser/trace.log
+            out/jreleaser/output.properties
+
+  # Taken from: https://github.com/EnricoMi/publish-unit-test-result-action/blob/v1.20/README.md#support-fork-repositories-and-dependabot-branches
+  #  - Required for test-results to be published
+  event_file:
+    needs: build
+    if: ${{ inputs.is-a-release }}
+    name: "Event File"
     runs-on: ubuntu-latest
     steps:
-      - name: Let's go
-        run: echo "Yes"
-  condition-with-equal-true:
-    if: ${{ inputs.is-a-release == true }}
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          name: Event File
+          path: ${{ github.event_path }}
+
+  unit-test-results:
+    needs: event_file
+    if: ${{ inputs.is-a-release }}
+    name: Unit Test Results
     runs-on: ubuntu-latest
     steps:
-      - name: Let's go
-        run: echo "Yes"
-  condition-with-equal-false:
-    if: ${{ inputs.is-a-release == false }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Let's go
-        run: echo "Yes"
-#
-#  test-multiple-os:
-#    if: ${{ inputs.is-a-release }}
-#    strategy:
-#      fail-fast: false
-#      matrix:
-##        os: [ ubuntu-latest, windows-latest, macos-latest ]
-##        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
-#        os: [ ubuntu-latest ]
-#        java-version: [ 8 ]
-#    runs-on: ${{ matrix.os }}
-#    timeout-minutes: 10
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v3
-#
-#      - name: Setup Java JDK
-#        uses: actions/setup-java@v3
-#        with:
-#          distribution: adopt-hotspot
-#          java-version: ${{ matrix.java-version }}
-#
-#      - name: Java version
-#        run: java -version
-#
-#      # The project version extract NEEDS to have the maven wrapper already downloaded.
-#      # So we have a dummy step here just to initialize it.
-#      - name: Download maven wrapper
-#        run: ./mvnw --version
-#
-#      - name: Build and Test
-#        run: ./mvnw test
-#
-#  build:
-#    needs: test-multiple-os
-#    if: ${{ inputs.is-a-release == false }}
-#    strategy:
-#      fail-fast: false
-#    runs-on: ${{ inputs.operative-system }}
-#    timeout-minutes: 10
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v3
-#        with:
-#          fetch-depth: 0 # Required depth for JReleaser
-#      - name: OS runs
-#        run: echo ${{ env.release-os }}
-#      - name: Setup Java JDK
-#        uses: actions/setup-java@v3
-#        with:
-#          distribution: adopt-hotspot
-#          java-version: ${{ inputs.java-version }}
-#
-#      # The project version extract NEEDS to have the maven wrapper already downloaded.
-#      # So we have a dummy step here just to initialize it.
-#      - name: Download maven wrapper
-#        run: ./mvnw --version
-#
-#      # Set environment variable for the project version: "var_to_set=$(command_to_run)" >> sink
-#      #  - For maven:  echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-#      #  - For gradle: echo "PROJECT_VERSION=$(./gradlew properties | grep -Po '(?<=version: ).*')" >> $GITHUB_ENV
-#      - name: Extract project version to environment variable
-#        run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-#
-#      # Check if a tag exists that matches the current project version.
-#      # Write the existence state to the step output 'tagExists'.
-#      - name: 'Check: package version has corresponding git tag'
-#        id: tagged
-#        shell: bash
-#        run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
-#
-#      # Run build.
-#      # Tag does not exist AND trigger was manual. Deploy release artifacts!
-#      - name: Build release
-#        if: steps.tagged.outputs.tagExists == 0
-#        run: ./mvnw deploy -Prelease -DaltDeploymentRepository=local::default::file:./target/staging-deploy
-#
-#      # Upload test results
-#      - name: Upload Test Results
-#        uses: actions/upload-artifact@v2.3.1
-#        if: always()
-#        with:
-#          name: Event File
-#          retention-days: 21
-#          path: |
-#            **/TEST-*
-#            **/hs_err_pid*
-#
-#      # Make release with JReleaser, only running when the project version does not exist as a tag on the repository.
-#      - name: Release
-#        if: steps.tagged.outputs.tagExists == 0
-#        uses: jreleaser/release-action@v2
-#        with:
-#          arguments: full-release
-#        env:
-#          JRELEASER_PROJECT_VERSION: ${{ env.PROJECT_VERSION }}
-#          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
-#          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
-#          JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
-#          JRELEASER_NEXUS2_USERNAME: ${{ secrets.JRELEASER_DEPLOY_MAVEN_NEXUS2_USERNAME }}
-#          JRELEASER_NEXUS2_PASSWORD: ${{ secrets.JRELEASER_DEPLOY_MAVEN_NEXUS2_PASSWORD }}
-#
-#      # Upload JRelease debug log
-#      - name: JReleaser output
-#        if: steps.tagged.outputs.tagExists == 0
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: jreleaser-release
-#          path: |
-#            out/jreleaser/trace.log
-#            out/jreleaser/output.properties
-#
-#  # Taken from: https://github.com/EnricoMi/publish-unit-test-result-action/blob/v1.20/README.md#support-fork-repositories-and-dependabot-branches
-#  #  - Required for test-results to be published
-#  event_file:
-#    needs: build
-#    if: ${{ inputs.is-a-release == false }}
-#    name: "Event File"
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Upload
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: Event File
-#          path: ${{ github.event_path }}
-#
-#  unit-test-results:
-#    needs: event_file
-#    if: ${{ inputs.is-a-release == false }}
-#    name: Unit Test Results
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Download and Extract Artifacts
-#        env:
-#          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-#        run: |
-#          mkdir -p artifacts && cd artifacts
-#
-#          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
-#
-#          gh api "$artifacts_url" -q '.artifacts[] | [.name, .archive_download_url] | @tsv' | while read artifact
-#          do
-#            IFS=$'\t' read name url <<< "$artifact"
-#            gh api $url > "$name.zip"
-#            unzip -d "$name" "$name.zip"
-#          done
-#      - name: Publish Unit Test Results
-#        uses: EnricoMi/publish-unit-test-result-action@v1
-#        with:
-#          commit: ${{ github.event.workflow_run.head_sha }}
-#          event_file: artifacts/Event File/event.json
-#          event_name: ${{ github.event.workflow_run.event }}
-#          files: "artifacts/**/*.xml"
+      - name: Download and Extract Artifacts
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          mkdir -p artifacts && cd artifacts
+
+          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+
+          gh api "$artifacts_url" -q '.artifacts[] | [.name, .archive_download_url] | @tsv' | while read artifact
+          do
+            IFS=$'\t' read name url <<< "$artifact"
+            gh api $url > "$name.zip"
+            unzip -d "$name" "$name.zip"
+          done
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          commit: ${{ github.event.workflow_run.head_sha }}
+          event_file: artifacts/Event File/event.json
+          event_name: ${{ github.event.workflow_run.event }}
+          files: "artifacts/**/*.xml"
