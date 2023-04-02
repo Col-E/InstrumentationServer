@@ -44,74 +44,38 @@ permissions:
   contents: write
   pull-requests: write
 
-env:
-  can-release: ${{ inputs.is-a-release }}
-  can-release-2: ${{ github.repository == 'airvzxf/InstrumentationServer' && inputs.is-a-release }}
-  can-release-3: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
-  can-release-4: ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
-  env_var: ${{ vars.ENV_CONTEXT_VAR }}
-
 jobs:
   test-multiple-os:
     strategy:
       fail-fast: false
       matrix:
-#        os: [ ubuntu-latest, windows-latest, macos-latest ]
-#        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
-        os: [ ubuntu-latest ]
-        java-version: [ 8 ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: git branch all
-        run: git branch --all
-      - name: can release
-        run: echo "can-release -> ${{ env.can-release }}"
-      - name: can release 2
-        run: echo "can-release-2 -> ${{ env.can-release-2 }}"
-      - name: can release 3
-        run: echo "can-release-3 -> ${{ env.can-release-3 }}"
-      - name: can release 4
-        run: echo "can-release-4 -> ${{ env.can-release-4 }}"
-      - name: can release empty
-        if: ${{ env.can-release }}
-        run: echo "can-release Empty"
-      - name: can release true
-        if: ${{ env.can-release == 'true' }}
-        run: echo "can-release True"
-      - name: can release false
-        if: ${{ env.can-release == 'false' }}
-        run: echo "can-release False"
-      - name: env
-        run: echo "env -> ${{ toJSON(env) }}"
-      - name: github
-        run: echo "github -> ${{ toJSON(github) }}"
-#
-#      - name: Setup Java JDK
-#        uses: actions/setup-java@v3
-#        with:
-#          distribution: adopt-hotspot
-#          java-version: ${{ matrix.java-version }}
-#
-#      - name: Java version
-#        run: java -version
-#
-#      # The project version extract NEEDS to have the maven wrapper already downloaded.
-#      # So we have a dummy step here just to initialize it.
-#      - name: Download maven wrapper
-#        run: ./mvnw --version
-#
-#      - name: Build and Test
-#        run: ./mvnw test
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: adopt-hotspot
+          java-version: ${{ matrix.java-version }}
+
+      - name: Java version
+        run: java -version
+
+      # The project version extract NEEDS to have the maven wrapper already downloaded.
+      # So we have a dummy step here just to initialize it.
+      - name: Download maven wrapper
+        run: ./mvnw --version
+
+      - name: Build and Test
+        run: ./mvnw test
 
   build:
     needs: test-multiple-os
-    if: needs.test-multiple-os.result == 'success' && github.repository == 'airvzxf/InstrumentationServer' && inputs.is-a-release
-#    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
-#    if: ${{ inputs.is-a-release }}
-#    if: ${{ env.can-release == 'true' }}
+    if: needs.test-multiple-os.result == 'success' && inputs.is-a-release && github.repository == 'Col-E/InstrumentationServer' && github.ref == 'refs/heads/master'
     strategy:
       fail-fast: false
     runs-on: ${{ inputs.operative-system }}
@@ -145,25 +109,19 @@ jobs:
         shell: bash
         run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
 
-      # If the tag exits, show a message with the existing tags.
-      - name: git tag
-        run: git tag
-      - name: git tag wc
-        run: git tag | wc -l
-      - name: Tag information
-        run: |
-          echo "PROJECT_VERSION: ${{ env.PROJECT_VERSION }}"
-          echo "tagExists: ${{ env.tagExists }}"
-      - name: Tag version exists
+      # If the tag has a problem, it shows a message and exit of the job.
+      - name: Tag version problem
         if: steps.tagged.outputs.tagExists
         run: |
-          echo "The tag version ${{ env.PROJECT_VERSION }} exists."
-          git show-ref --tags --abbrev
+          echo "The tag version has a problem."
+          echo "PROJECT_VERSION: ${{ env.PROJECT_VERSION }}"
+          echo "Tags $(git tag | wc -l):"
+          git tag
+          exit 1
 
       # Run build.
       # Tag does not exist AND trigger was manual. Deploy release artifacts!
       - name: Build release
-        if: steps.tagged.outputs.tagExists == 0
         run: ./mvnw deploy -Prelease -DaltDeploymentRepository=local::default::file:./target/staging-deploy
 
       # Upload test results
@@ -179,7 +137,6 @@ jobs:
 
       # Make release with JReleaser, only running when the project version does not exist as a tag on the repository.
       - name: Release
-        if: steps.tagged.outputs.tagExists == 0
         uses: jreleaser/release-action@v2
         with:
           arguments: full-release
@@ -194,7 +151,6 @@ jobs:
 
       # Upload JRelease debug log
       - name: JReleaser output
-        if: steps.tagged.outputs.tagExists == 0
         uses: actions/upload-artifact@v3
         with:
           name: jreleaser-release
@@ -207,7 +163,6 @@ jobs:
   event_file:
     needs: build
     if: needs.build.result == 'success'
-    #    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
     name: "Event File"
     runs-on: ubuntu-latest
     steps:
@@ -220,7 +175,6 @@ jobs:
   unit-test-results:
     needs: event_file
     if: needs.event_file.result == 'success'
-#    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
     name: Unit Test Results
     runs-on: ubuntu-latest
     steps:
