@@ -2,11 +2,12 @@ name: CI
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - Test Multi OS
-    types:
-      - completed
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 permissions:
   checks: write
@@ -14,13 +15,43 @@ permissions:
   pull-requests: write
 
 jobs:
-  build:
+  test-multiple-os:
     strategy:
       fail-fast: false
       matrix:
         # Alternative for testing on multiple platforms. Ubuntu runs the quickest with the latest JVM.
         #   os: [ubuntu-latest, windows-latest, macos-latest]
         #   java-version: [11, 17]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: adopt-hotspot
+          java-version: ${{ matrix.java-version }}
+
+      - name: Java version
+        run: java -version
+
+      # The project version extract NEEDS to have the maven wrapper already downloaded.
+      # So we have a dummy step here just to initialize it.
+      - name: Download maven wrapper
+        run: ./mvnw --version
+
+      - name: Build and Test
+        run: ./mvnw test
+
+  build:
+    needs: test-multiple-os
+    strategy:
+      fail-fast: false
+      matrix:
         os: [ ubuntu-latest ]
         java-version: [ 17 ]
     runs-on: ${{ matrix.os }}
@@ -104,6 +135,7 @@ jobs:
   # Taken from: https://github.com/EnricoMi/publish-unit-test-result-action/blob/v1.20/README.md#support-fork-repositories-and-dependabot-branches
   #  - Required for test-results to be published
   event_file:
+    needs: build
     name: "Event File"
     runs-on: ubuntu-latest
     steps:
@@ -112,3 +144,30 @@ jobs:
         with:
           name: Event File
           path: ${{ github.event_path }}
+
+  unit-test-results:
+    needs: event_file
+    name: Unit Test Results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and Extract Artifacts
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          mkdir -p artifacts && cd artifacts
+          
+          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          
+          gh api "$artifacts_url" -q '.artifacts[] | [.name, .archive_download_url] | @tsv' | while read artifact
+          do
+            IFS=$'\t' read name url <<< "$artifact"
+            gh api $url > "$name.zip"
+            unzip -d "$name" "$name.zip"
+          done
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          commit: ${{ github.event.workflow_run.head_sha }}
+          event_file: artifacts/Event File/event.json
+          event_name: ${{ github.event.workflow_run.event }}
+          files: "artifacts/**/*.xml"
