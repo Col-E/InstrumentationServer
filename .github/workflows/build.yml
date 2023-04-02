@@ -108,8 +108,8 @@ jobs:
 
   build:
     needs: test-multiple-os
-    if: needs.test-multiple-os.result == 'failure'
-#    if: needs.test-multiple-os.result == 'success'
+#    if: needs.test-multiple-os.result == 'failure'
+    if: needs.test-multiple-os.result == 'success'
 #    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
 #    if: ${{ inputs.is-a-release }}
 #    if: ${{ env.can-release == 'true' }}
