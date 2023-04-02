@@ -2,6 +2,20 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      name:
+        type: choice
+        description: Who to greet
+        options:
+          - monalisa
+          - cschleiden
+      message:
+        required: true
+      use-emoji:
+        type: boolean
+        description: Include 🎉🤣 emojis
+      environment:
+        type: environment
   push:
     branches:
       - master
@@ -51,14 +65,11 @@ jobs:
 
   build:
     needs: test-multiple-os
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     env:
-      release-os: ubuntu-latest
-      release-java-version: 17
+      java-version: 17
     strategy:
       fail-fast: false
-#      matrix:
-#        os: [ ubuntu-latest ]
-#        java-version: [ 17 ]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -72,7 +83,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: adopt-hotspot
-          java-version: ${{ env.release-java-version }}
+          java-version: ${{ env.java-version }}
 
       # The project version extract NEEDS to have the maven wrapper already downloaded.
       # So we have a dummy step here just to initialize it.
@@ -143,6 +154,7 @@ jobs:
   #  - Required for test-results to be published
   event_file:
     needs: build
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     name: "Event File"
     runs-on: ubuntu-latest
     steps:
@@ -154,6 +166,7 @@ jobs:
 
   unit-test-results:
     needs: event_file
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     name: Unit Test Results
     runs-on: ubuntu-latest
     steps:
