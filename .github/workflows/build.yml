@@ -49,6 +49,7 @@ env:
   can-release-2: ${{ github.repository == 'airvzxf/InstrumentationServer' && inputs.is-a-release }}
   can-release-3: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
   can-release-4: ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
+  env_var: ${{ vars.ENV_CONTEXT_VAR }}
 
 jobs:
   test-multiple-os:
@@ -83,6 +84,10 @@ jobs:
       - name: can release false
         if: ${{ env.can-release == 'false' }}
         run: echo "can-release False"
+      - name: env_var
+        run: echo "env_var -> $env_var"
+      - name: vars
+        run: echo "env_var -> ${{ vars }}"
 #
 #      - name: Setup Java JDK
 #        uses: actions/setup-java@v3
