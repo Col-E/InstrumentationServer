@@ -1,13 +1,12 @@
 name: CI
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+  workflow_run:
+    workflows:
+      - Test Multi OS
+    types:
+      - completed
+
 
 permissions:
   checks: write

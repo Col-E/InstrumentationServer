@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        java-version: [ 17 ]
+        java-version: [ 8.0.232, 8.0.282+8, 11.0, 11.0.4, 15-ea, 15.0.0-ea, 15.0.0-ea.2, 15.0.0+2-ea, 16, 17.0 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -55,6 +55,6 @@ jobs:
       # Run build.
       # Either the tag exists, or the trigger was not a manual one.
       # Without explicit intent we do not want to publish a release.
-      - name: Build
+      - name: Build and Test
         if: steps.tagged.outputs.tagExists == 1 || github.event_name != 'workflow_dispatch'
         run: ./mvnw test
