@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       is-a-release:
-        description: Do you want to release?
+        description: Do you want to release? (Only works in the master branch)
         type: boolean
       operative-system:
         type: choice
