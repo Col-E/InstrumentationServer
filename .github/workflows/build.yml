@@ -3,7 +3,7 @@ name: CI
 on:
   workflow_run:
     workflows:
-      - Test Multi OS
+      - "Test Multi OS"
     types:
       - completed
 
