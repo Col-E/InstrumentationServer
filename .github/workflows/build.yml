@@ -14,10 +14,6 @@ permissions:
   contents: write
   pull-requests: write
 
-env:
-  release-os: ubuntu-latest
-  release-java-version: 17
-
 jobs:
   test-multiple-os:
     strategy:
@@ -55,18 +51,23 @@ jobs:
 
   build:
     needs: test-multiple-os
+    env:
+      release-os: ubuntu-latest
+      release-java-version: 17
     strategy:
       fail-fast: false
 #      matrix:
 #        os: [ ubuntu-latest ]
 #        java-version: [ 17 ]
-    runs-on: ${{ env.release-os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0 # Required depth for JReleaser
+      - name: OS runs
+        run: echo ${{ env.release-os }}
       - name: Setup Java JDK
         uses: actions/setup-java@v3
         with:
