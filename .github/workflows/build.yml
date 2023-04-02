@@ -50,19 +50,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Let's go
-        runs: echo "Yes"
+        run: echo "Yes"
   condition-with-equal-true:
     if: ${{ inputs.is-a-release == true }}
     runs-on: ubuntu-latest
     steps:
       - name: Let's go
-        runs: echo "Yes"
+        run: echo "Yes"
   condition-with-equal-false:
     if: ${{ inputs.is-a-release == false }}
     runs-on: ubuntu-latest
     steps:
       - name: Let's go
-        runs: echo "Yes"
+        run: echo "Yes"
 #
 #  test-multiple-os:
 #    if: ${{ inputs.is-a-release }}
