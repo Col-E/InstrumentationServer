@@ -79,6 +79,7 @@ jobs:
   build:
     needs: test-multiple-os
 #    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
+    if: ${{ inputs.is-a-release }}
     strategy:
       fail-fast: false
     runs-on: ${{ inputs.operative-system }}
@@ -121,6 +122,16 @@ jobs:
         run: ls -lha
       - name: git status
         run: git status
+      - name: git help
+        run: git --help
+      - name: git tag
+        run: git tag
+      - name: git tag list
+        run: git tag --list
+      - name: git tag column
+        run: git tag --column
+      - name: git show-ref
+        run: git show-ref
       - name: Tag version exists
         run: git show-ref --tags
       - name: Tag version exists
