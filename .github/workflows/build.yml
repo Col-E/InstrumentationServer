@@ -78,7 +78,7 @@ jobs:
 
   build:
     needs: test-multiple-os
-    if: ${{ github.ref != 'refs/heads/master' && inputs.is-a-release }}
+    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
     strategy:
       fail-fast: false
     runs-on: ${{ inputs.operative-system }}
@@ -167,7 +167,7 @@ jobs:
   #  - Required for test-results to be published
   event_file:
     needs: build
-    if: ${{ github.ref != 'refs/heads/master' && inputs.is-a-release }}
+    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
     name: "Event File"
     runs-on: ubuntu-latest
     steps:
@@ -179,7 +179,7 @@ jobs:
 
   unit-test-results:
     needs: event_file
-    if: ${{ github.ref != 'refs/heads/master' && inputs.is-a-release }}
+    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
     name: Unit Test Results
     runs-on: ubuntu-latest
     steps:
