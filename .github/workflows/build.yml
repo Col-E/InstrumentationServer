@@ -94,7 +94,7 @@ jobs:
     needs: test-multiple-os
 #    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
 #    if: ${{ inputs.is-a-release }}
-    if: ${{ can-release }}
+    if: ${{ env.can-release }}
     strategy:
       fail-fast: false
     runs-on: ${{ inputs.operative-system }}
