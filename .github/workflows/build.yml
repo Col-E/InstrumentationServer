@@ -17,14 +17,39 @@ on:
           - Yes
       is-a-release-boolean:
         description: Do you want to release? (Boolean)
-        required: true
         type: boolean
         default: true
       is-a-release-boolean-2:
         description: Do you want to release? (Boolean-2)
-        required: true
         type: boolean
         default: false
+      operative-system:
+        type: choice
+        description: Chose the Operative System
+        options:
+          - ubuntu-latest
+          - ubuntu-20.04
+          - macos-latest
+          - macos-11
+          - windows-latest
+          - windows-2022
+        default: ubuntu-latest
+      java-version:
+        type: choice
+        description: Chose the Operative System
+        options:
+          - 19
+          - 18
+          - 17
+          - 16
+          - 15
+          - 14
+          - 13
+          - 12
+          - 11
+          - 8
+        default: 17
+
 
 permissions:
   checks: write
@@ -43,13 +68,17 @@ jobs:
         run: echo "${{ inputs.is-a-release-boolean }}"
       - name: is-a-release-boolean-2
         run: echo "${{ inputs.is-a-release-boolean-2 }}"
+      - name: operative-system
+        run: echo "${{ inputs.operative-system }}"
+      - name: java-version
+        run: echo "${{ inputs.java-version }}"
 
-      - name: is-a-release-yes
-        if: ${{ inputs.is-a-release == 'Yes' }}
-        run: echo "inputs.is-a-release Yes"
-      - name: is-a-release-no
-        if: ${{ inputs.is-a-release == 'No' }}
-        run: echo "inputs.is-a-release Yes"
+#      - name: is-a-release-yes
+#        if: ${{ inputs.is-a-release == 'Yes' }}
+#        run: echo "inputs.is-a-release Yes"
+#      - name: is-a-release-no
+#        if: ${{ inputs.is-a-release == 'No' }}
+#        run: echo "inputs.is-a-release Yes"
 
       - name: is-a-release-boolean-yes
         if: ${{ inputs.is-a-release-boolean == 'Yes' }}
@@ -99,11 +128,9 @@ jobs:
 #  build:
 #    needs: test-multiple-os
 #    if: ${{ github.event_name == 'workflow_dispatch' }}
-#    env:
-#      java-version: 17
 #    strategy:
 #      fail-fast: false
-#    runs-on: ubuntu-latest
+#    runs-on: ${{ inputs.operative-system }}
 #    timeout-minutes: 10
 #    steps:
 #      - name: Checkout
@@ -116,7 +143,7 @@ jobs:
 #        uses: actions/setup-java@v3
 #        with:
 #          distribution: adopt-hotspot
-#          java-version: ${{ env.java-version }}
+#          java-version: ${{ inputs.java-version }}
 #
 #      # The project version extract NEEDS to have the maven wrapper already downloaded.
 #      # So we have a dummy step here just to initialize it.
