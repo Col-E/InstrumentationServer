@@ -72,9 +72,9 @@ jobs:
       - name: can release 2
         run: echo "can-release-2 -> ${{ env.can-release-2 }}"
       - name: can release 3
-        run: echo "can-release-2 -> ${{ env.can-release-2 }}"
+        run: echo "can-release-3 -> ${{ env.can-release-3 }}"
       - name: can release 4
-        run: echo "can-release-2 -> ${{ env.can-release-2 }}"
+        run: echo "can-release-4 -> ${{ env.can-release-4 }}"
       - name: can release empty
         if: ${{ env.can-release }}
         run: echo "can-release Empty"
@@ -87,7 +87,7 @@ jobs:
       - name: env
         run: echo "env -> ${{ toJSON(env) }}"
       - name: github
-        run: echo "github -> ${{ toJSON(github.event.inputs) }}"
+        run: echo "github -> ${{ toJSON(github) }}"
 #
 #      - name: Setup Java JDK
 #        uses: actions/setup-java@v3
