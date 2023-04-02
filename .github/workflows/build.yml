@@ -64,6 +64,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: git branch all
+        run: git branch --all
       - name: can release
         run: echo "can-release -> ${{ env.can-release }}"
       - name: can release 2
