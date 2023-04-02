@@ -120,30 +120,20 @@ jobs:
         run: pwd
       - name: ls
         run: ls -lha
-      - name: git status
-        run: git status
-      - name: git help
-        run: git --help
       - name: git tag
         run: git tag
-      - name: git tag list
-        run: git tag --list
-      - name: git tag column
-        run: git tag --column
-      - name: git show-ref
-        run: git show-ref
+      - name: git tag wc
+        run: git tag | wc -l
+      - name: repository name
+        run: echo "${{ github.event.repository.name }}"
       - name: Tag version exists
-        run: git show-ref --tags
-      - name: Tag version exists
-        run: git show-ref --tags --abbrev
-      - name: Tag version exists
-        shell: bash
         run: |
-          echo "The tag version ${{ env.PROJECT_VERSION }} exists."
+          echo "The tag version exists."
+          echo "PROJECT_VERSION: ${{ env.PROJECT_VERSION }}"
+          echo "tagExists: ${{ env.tagExists }}"
           git show-ref --tags --abbrev
       - name: Tag version exists
         if: steps.tagged.outputs.tagExists
-        shell: bash
         run: |
           echo "The tag version ${{ env.PROJECT_VERSION }} exists."
           git show-ref --tags --abbrev
