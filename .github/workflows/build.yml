@@ -42,10 +42,9 @@ on:
         type: choice
         description: Chose the Operative System
         options:
-          - ${{ inputs.is-a-release }}
-          - ${{ github.repository == 'airvzxf/InstrumentationServer' && inputs.is-a-release }}
-          - ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
-          - ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
+          - ${{ github.repository == 'airvzxf/InstrumentationServer' }}
+          - ${{ github.ref == 'refs/heads/master' }}
+          - ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' }}
 
 permissions:
   checks: write
