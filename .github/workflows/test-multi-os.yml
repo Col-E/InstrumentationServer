@@ -1,4 +1,4 @@
-name: "Test Multi OS"
+name: TestMultiOS"
 
 on:
   workflow_dispatch:

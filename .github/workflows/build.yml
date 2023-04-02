@@ -3,10 +3,9 @@ name: CI
 on:
   workflow_run:
     workflows:
-      - "Test Multi OS"
+      - TestMultiOS
     types:
       - completed
-
 
 permissions:
   checks: write
