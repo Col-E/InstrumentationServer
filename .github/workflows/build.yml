@@ -44,6 +44,12 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  can-release: ${{ inputs.is-a-release }}
+  can-release-2: ${{ github.repository == 'Col-E/InstrumentationServer' && inputs.is-a-release }}
+  can-release-3: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
+  can-release-4: ${{ github.repository == 'Col-E/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
+
 jobs:
   test-multiple-os:
     strategy:
@@ -58,6 +64,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: can release
+        run: echo "can-release -> ${{ can-release }}"
+      - name: can release 2
+        run: echo "can-release-2 -> ${{ can-release-2 }}"
+      - name: can release 3
+        run: echo "can-release-2 -> ${{ can-release-2 }}"
+      - name: can release 4
+        run: echo "can-release-2 -> ${{ can-release-2 }}"
 #
 #      - name: Setup Java JDK
 #        uses: actions/setup-java@v3
@@ -79,7 +93,8 @@ jobs:
   build:
     needs: test-multiple-os
 #    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
-    if: ${{ inputs.is-a-release }}
+#    if: ${{ inputs.is-a-release }}
+    if: ${{ can-release }}
     strategy:
       fail-fast: false
     runs-on: ${{ inputs.operative-system }}
@@ -193,7 +208,7 @@ jobs:
   #  - Required for test-results to be published
   event_file:
     needs: build
-    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
+#    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
     name: "Event File"
     runs-on: ubuntu-latest
     steps:
