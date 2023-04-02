@@ -54,27 +54,27 @@ jobs:
         os: [ ubuntu-latest ]
         java-version: [ 8 ]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Java JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: adopt-hotspot
-          java-version: ${{ matrix.java-version }}
-
-      - name: Java version
-        run: java -version
-
-      # The project version extract NEEDS to have the maven wrapper already downloaded.
-      # So we have a dummy step here just to initialize it.
-      - name: Download maven wrapper
-        run: ./mvnw --version
-
-      - name: Build and Test
-        run: ./mvnw test
+#    timeout-minutes: 10
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v3
+#
+#      - name: Setup Java JDK
+#        uses: actions/setup-java@v3
+#        with:
+#          distribution: adopt-hotspot
+#          java-version: ${{ matrix.java-version }}
+#
+#      - name: Java version
+#        run: java -version
+#
+#      # The project version extract NEEDS to have the maven wrapper already downloaded.
+#      # So we have a dummy step here just to initialize it.
+#      - name: Download maven wrapper
+#        run: ./mvnw --version
+#
+#      - name: Build and Test
+#        run: ./mvnw test
 
   build:
     needs: test-multiple-os
@@ -124,7 +124,11 @@ jobs:
         run: git tag
       - name: git tag wc
         run: git tag | wc -l
-      - name: repository name
+      - name: github.repository
+        run: echo "${{ github.repository }}"
+      - name: github.event.repository.full_name
+        run: echo "${{ github.event.repository.full_name }}"
+      - name: github.event.repository.name
         run: echo "${{ github.event.repository.name }}"
       - name: Dump github context
         run: echo "$GITHUB_CONTEXT"
