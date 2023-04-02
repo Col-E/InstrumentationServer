@@ -51,11 +51,11 @@ jobs:
 
   build:
     needs: test-multiple-os
+    env:
+      os: ubuntu-latest
+      java-version: 17
     strategy:
       fail-fast: false
-      env:
-        os: ubuntu-latest
-        java-version: 17
 #      matrix:
 #        os: [ ubuntu-latest ]
 #        java-version: [ 17 ]
