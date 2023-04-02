@@ -49,10 +49,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-#        os: [ ubuntu-latest, windows-latest, macos-latest ]
-#        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
-        os: [ ubuntu-latest ]
-        java-version: [ 8 ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -78,7 +76,7 @@ jobs:
 
   build:
     needs: test-multiple-os
-    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
+#    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
     strategy:
       fail-fast: false
     runs-on: ${{ inputs.operative-system }}
@@ -118,7 +116,7 @@ jobs:
       - name: Tag version exists
         if: steps.tagged.outputs.tagExists
         run: |
-          echo "The tag version (${{ env.PROJECT_VERSION }}) exists:"
+          echo "The tag version ${{ env.PROJECT_VERSION }} exists."
           git show-ref --tags
 
       # Run build.
