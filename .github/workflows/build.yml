@@ -116,10 +116,16 @@ jobs:
 
       # If the tag exits, show a message with the existing tags.
       - name: Tag version exists
+        run: git show-ref --tags --abbrev
+      - name: Tag version exists
+        run: |
+          echo "The tag version ${{ env.PROJECT_VERSION }} exists."
+          git show-ref --tags --abbrev
+      - name: Tag version exists
         if: steps.tagged.outputs.tagExists
         run: |
           echo "The tag version ${{ env.PROJECT_VERSION }} exists."
-          git show-ref --tags
+          git show-ref --tags --abbrev
 
       # Run build.
       # Tag does not exist AND trigger was manual. Deploy release artifacts!
