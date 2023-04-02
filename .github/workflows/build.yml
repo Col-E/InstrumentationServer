@@ -15,8 +15,8 @@ permissions:
   pull-requests: write
 
 env:
-  os: ubuntu-latest
-  java-version: 17
+  release-os: ubuntu-latest
+  release-java-version: 17
 
 jobs:
   test-multiple-os:
@@ -60,7 +60,7 @@ jobs:
 #      matrix:
 #        os: [ ubuntu-latest ]
 #        java-version: [ 17 ]
-    runs-on: ${{ env.os }}
+    runs-on: ${{ env.release-os }}
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -71,7 +71,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: adopt-hotspot
-          java-version: ${{ env.java-version }}
+          java-version: ${{ env.release-java-version }}
 
       # The project version extract NEEDS to have the maven wrapper already downloaded.
       # So we have a dummy step here just to initialize it.
