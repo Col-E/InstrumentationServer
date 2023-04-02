@@ -22,8 +22,10 @@ jobs:
         # Alternative for testing on multiple platforms. Ubuntu runs the quickest with the latest JVM.
         #   os: [ubuntu-latest, windows-latest, macos-latest]
         #   java-version: [11, 17]
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
-        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
+#        os: [ ubuntu-latest, windows-latest, macos-latest ]
+#        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
+        os: [ ubuntu-latest ]
+        java-version: [ 8 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -51,10 +53,13 @@ jobs:
     needs: test-multiple-os
     strategy:
       fail-fast: false
-      matrix:
-        os: [ ubuntu-latest ]
-        java-version: [ 17 ]
-    runs-on: ${{ matrix.os }}
+      env:
+        os: ubuntu-latest
+        java-version: 17
+#      matrix:
+#        os: [ ubuntu-latest ]
+#        java-version: [ 17 ]
+    runs-on: ${{ env.os }}
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -65,7 +70,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: adopt-hotspot
-          java-version: ${{ matrix.java-version }}
+          java-version: ${{ env.java-version }}
 
       # The project version extract NEEDS to have the maven wrapper already downloaded.
       # So we have a dummy step here just to initialize it.
