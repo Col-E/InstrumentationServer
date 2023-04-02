@@ -1,0 +1,60 @@
+name: Test Multi OS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  checks: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        java-version: [ 17 ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Required depth for JReleaser
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: adopt-hotspot
+          java-version: ${{ matrix.java-version }}
+
+      # The project version extract NEEDS to have the maven wrapper already downloaded.
+      # So we have a dummy step here just to initialize it.
+      - name: Download maven wrapper
+        run: ./mvnw --version
+
+      # Set environment variable for the project version: "var_to_set=$(command_to_run)" >> sink
+      #  - For maven:  echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+      #  - For gradle: echo "PROJECT_VERSION=$(./gradlew properties | grep -Po '(?<=version: ).*')" >> $GITHUB_ENV
+      - name: Extract project version to environment variable
+        run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+
+      # Check if a tag exists that matches the current project version.
+      # Write the existence state to the step output 'tagExists'.
+      - name: 'Check: package version has corresponding git tag'
+        id: tagged
+        shell: bash
+        run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
+
+      # Run build.
+      # Either the tag exists, or the trigger was not a manual one.
+      # Without explicit intent we do not want to publish a release.
+      - name: Build
+        if: steps.tagged.outputs.tagExists == 1 || github.event_name != 'workflow_dispatch'
+        run: ./mvnw test
