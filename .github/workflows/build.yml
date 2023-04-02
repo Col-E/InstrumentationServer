@@ -78,10 +78,10 @@ jobs:
         if: ${{ env.can-release }}
         run: echo "can-release Empty"
       - name: can release true
-        if: ${{ env.can-release == true }}
+        if: ${{ env.can-release == 'true' }}
         run: echo "can-release True"
       - name: can release false
-        if: ${{ env.can-release == false }}
+        if: ${{ env.can-release == 'false' }}
         run: echo "can-release False"
 #
 #      - name: Setup Java JDK
