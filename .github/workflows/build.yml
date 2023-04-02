@@ -115,22 +115,26 @@ jobs:
         run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
 
       # If the tag exits, show a message with the existing tags.
+      - name: PWD
+        run: pwd
+      - name: ls
+        run: ls -lha
+      - name: git status
+        run: git status
       - name: Tag version exists
-        shell: bash
-        run: git show-ref --tags || true
+        run: git show-ref --tags
       - name: Tag version exists
-        shell: bash
-        run: git show-ref --tags --abbrev || true
+        run: git show-ref --tags --abbrev
       - name: Tag version exists
         shell: bash
         run: |
-          echo "The tag version ${{ env.PROJECT_VERSION }} exists." || true
-          git show-ref --tags --abbrev || true
+          echo "The tag version ${{ env.PROJECT_VERSION }} exists."
+          git show-ref --tags --abbrev
       - name: Tag version exists
         if: steps.tagged.outputs.tagExists
         shell: bash
         run: |
-          echo "The tag version ${{ env.PROJECT_VERSION }} exists." || true
+          echo "The tag version ${{ env.PROJECT_VERSION }} exists."
           git show-ref --tags --abbrev
 
       # Run build.
