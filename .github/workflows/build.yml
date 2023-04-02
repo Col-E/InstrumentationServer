@@ -46,9 +46,9 @@ permissions:
 
 env:
   can-release: ${{ inputs.is-a-release }}
-  can-release-2: ${{ github.repository == 'Col-E/InstrumentationServer' && inputs.is-a-release }}
+  can-release-2: ${{ github.repository == 'airvzxf/InstrumentationServer' && inputs.is-a-release }}
   can-release-3: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
-  can-release-4: ${{ github.repository == 'Col-E/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
+  can-release-4: ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
 
 jobs:
   test-multiple-os:
