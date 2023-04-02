@@ -38,13 +38,6 @@ on:
           - 11
           - 8
         default: 17
-      can-release:
-        type: choice
-        description: Chose the Operative System
-        options:
-          - ${{ github.repository == 'airvzxf/InstrumentationServer' }}
-          - ${{ github.ref == 'refs/heads/master' }}
-          - ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' }}
 
 permissions:
   checks: write
@@ -115,6 +108,8 @@ jobs:
 
   build:
     needs: test-multiple-os
+    if: needs.test-multiple-os.result == 'failure'
+#    if: needs.test-multiple-os.result == 'success'
 #    if: ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
 #    if: ${{ inputs.is-a-release }}
 #    if: ${{ env.can-release == 'true' }}
