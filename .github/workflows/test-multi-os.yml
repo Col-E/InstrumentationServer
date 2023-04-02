@@ -1,4 +1,4 @@
-name: TestMultiOS
+name: Test Multi OS
 
 on:
   workflow_dispatch:
@@ -19,10 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
-#        os: [ ubuntu-latest, windows-latest, macos-latest ]
-#        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
-        java-version: [ 8 ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        java-version: [ 8, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
