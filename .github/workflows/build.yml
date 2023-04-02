@@ -38,6 +38,14 @@ on:
           - 11
           - 8
         default: 17
+      can-release:
+        type: choice
+        description: Chose the Operative System
+        options:
+          - ${{ inputs.is-a-release }}
+          - ${{ github.repository == 'airvzxf/InstrumentationServer' && inputs.is-a-release }}
+          - ${{ github.ref == 'refs/heads/master' && inputs.is-a-release }}
+          - ${{ github.repository == 'airvzxf/InstrumentationServer' && github.ref == 'refs/heads/master' && inputs.is-a-release }}
 
 permissions:
   checks: write
@@ -87,7 +95,7 @@ jobs:
       - name: env
         run: echo "env -> ${{ toJSON(env) }}"
       - name: github
-        run: echo "github -> ${{ toJSON(github) }}"
+        run: echo "github -> ${{ toJSON(github.event.inputs) }}"
 #
 #      - name: Setup Java JDK
 #        uses: actions/setup-java@v3
