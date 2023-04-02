@@ -15,6 +15,8 @@ on:
         options:
           - No
           - Yes
+          - Hello
+          - Bye
       is-a-release-boolean:
         description: Do you want to release? (Boolean)
         type: boolean
@@ -73,26 +75,32 @@ jobs:
       - name: java-version
         run: echo "${{ inputs.java-version }}"
 
-#      - name: is-a-release-yes
-#        if: ${{ inputs.is-a-release == 'Yes' }}
-#        run: echo "inputs.is-a-release Yes"
-#      - name: is-a-release-no
-#        if: ${{ inputs.is-a-release == 'No' }}
-#        run: echo "inputs.is-a-release Yes"
+      - name: is-a-release-true
+        if: ${{ inputs.is-a-release == true }}
+        run: echo "inputs.is-a-release true"
+      - name: is-a-release-no
+        if: ${{ inputs.is-a-release == false }}
+        run: echo "inputs.is-a-release false"
+      - name: is-a-release-hello
+        if: ${{ inputs.is-a-release == 'Hello' }}
+        run: echo "inputs.is-a-release Hello"
+      - name: is-a-release-bye
+        if: ${{ inputs.is-a-release == 'Bye' }}
+        run: echo "inputs.is-a-release Bye"
 
       - name: is-a-release-boolean-yes
-        if: ${{ inputs.is-a-release-boolean == 'Yes' }}
-        run: echo "inputs.is-a-release-boolean Yes"
+        if: ${{ inputs.is-a-release-boolean == true }}
+        run: echo "inputs.is-a-release-boolean true"
       - name: is-a-release-boolean-no
-        if: ${{ inputs.is-a-release-boolean == 'No' }}
-        run: echo "inputs.is-a-release-boolean Yes"
+        if: ${{ inputs.is-a-release-boolean == false }}
+        run: echo "inputs.is-a-release-boolean false"
 
       - name: is-a-release-boolean-2-yes
-        if: ${{ inputs.is-a-release-boolean-2 == 'Yes' }}
-        run: echo "inputs.is-a-release-boolean-2 Yes"
+        if: ${{ inputs.is-a-release-boolean-2 == true }}
+        run: echo "inputs.is-a-release-boolean-2 true"
       - name: is-a-release-boolean-2-no
-        if: ${{ inputs.is-a-release-boolean-2 == 'No' }}
-        run: echo "inputs.is-a-release-boolean-2 Yes"
+        if: ${{ inputs.is-a-release-boolean-2 == false }}
+        run: echo "inputs.is-a-release-boolean-2 false"
 
 #  test-multiple-os:
 #    strategy:
