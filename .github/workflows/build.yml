@@ -117,20 +117,20 @@ jobs:
       # If the tag exits, show a message with the existing tags.
       - name: Tag version exists
         shell: bash
-        run: git show-ref --tags
+        run: git show-ref --tags || true
       - name: Tag version exists
         shell: bash
-        run: git show-ref --tags --abbrev
+        run: git show-ref --tags --abbrev || true
       - name: Tag version exists
         shell: bash
         run: |
-          echo "The tag version ${{ env.PROJECT_VERSION }} exists."
-          git show-ref --tags --abbrev
+          echo "The tag version ${{ env.PROJECT_VERSION }} exists." || true
+          git show-ref --tags --abbrev || true
       - name: Tag version exists
         if: steps.tagged.outputs.tagExists
         shell: bash
         run: |
-          echo "The tag version ${{ env.PROJECT_VERSION }} exists."
+          echo "The tag version ${{ env.PROJECT_VERSION }} exists." || true
           git show-ref --tags --abbrev
 
       # Run build.
