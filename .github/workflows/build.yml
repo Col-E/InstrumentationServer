@@ -50,7 +50,7 @@ jobs:
     steps:
       - name: API Adoptium - Get Java versions
         id: java-latest-version
-        runs: |
+        run: |
           curl --silent \
               -X 'GET' \
               'https://api.adoptium.net/v3/assets/version/%5B1.0%2C111.0%5D?heap_size=normal&image_type=jdk&page=0&page_size=1&project=jdk&release_type=ga&sort_method=DEFAULT&sort_order=DESC&vendor=eclipse' \
