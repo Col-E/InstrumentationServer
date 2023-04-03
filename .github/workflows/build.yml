@@ -107,16 +107,17 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       checks: write
-      # only needed unless run with comment_mode: off
       pull-requests: write
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
+          name: artifact-unit-test-*
           path: artifacts-unit-test
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
+          check_name: Unit Test results
           files: "artifacts-unit-test/**/*.xml"
 
   build-and-release:
