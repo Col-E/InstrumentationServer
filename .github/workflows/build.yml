@@ -71,7 +71,7 @@ jobs:
 #        os: [ ubuntu-latest, windows-latest, macos-latest ]
         os: [ ubuntu-latest ]
 #        java-version: [ 8, 11, 20, 21 ]
-        java-version: [ 8 ]
+        java-version: [ 8, ${{ needs.get-last-java-version.outputs.latest-java-version }} ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -81,10 +81,6 @@ jobs:
         run: echo "${{ toJson(needs.get-last-java-version.outputs) }}"
       - name: get-last-java-version.outputs.latest-java-version
         run: echo "${{ toJson(needs.get-last-java-version.outputs.latest-java-version) }}"
-      - name: env
-        run: echo "env -> ${{ toJson(env) }}"
-      - name: env.LATEST_JAVA_VERSION
-        run: echo "env.PROJECT_VERSION -> ${{ env.LATEST_JAVA_VERSION }}"
 #      - name: Checkout
 #        uses: actions/checkout@v3
 #      - name: Setup Java JDK
