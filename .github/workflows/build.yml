@@ -10,11 +10,11 @@ on:
   workflow_dispatch:
     inputs:
       is-a-release:
-        description: Do you want to release? (Only works in the master branch)
+        description: Publish release? (Only works on master, and for untagged versions)
         type: boolean
-      operative-system:
+      operating-system:
         type: choice
-        description: Chose the Operative System
+        description: Operating System
         options:
           - ubuntu-latest
           - ubuntu-20.04
@@ -25,8 +25,9 @@ on:
         default: ubuntu-latest
       java-version:
         type: choice
-        description: Chose the Java version
+        description: Java version
         options:
+          - 20
           - 19
           - 18
           - 17
@@ -42,11 +43,12 @@ on:
 permissions: {}
 
 jobs:
+  # Fetches the latest version of Java from Adoptium's REST API
   latest-java-version:
     name: Get latest Java version
     runs-on: ubuntu-latest
     steps:
-      - name: API Adoptium - Get Java versions
+      - name: API Adoptium - Get latest feature release
         run: |
           LATEST_JAVA_VERSION=$(curl --silent \
               -X 'GET' \
@@ -60,8 +62,9 @@ jobs:
     outputs:
       version: ${{ env.LATEST_JAVA_VERSION }}
 
+  # Runs the test suite on multiple operating systems, across multiple versions of Java
   test-multiple-os:
-    name: Test in ${{ matrix.os }}, Java ${{ matrix.java-version }}
+    name: Tests on ${{ matrix.os }}, Java ${{ matrix.java-version }}
     needs: latest-java-version
     if: needs.latest-java-version.result == 'success' && needs.latest-java-version.outputs.version != null
     strategy:
@@ -77,7 +80,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup Java JDK
+      - name: Setup JDK
         uses: actions/setup-java@v3
         with:
           distribution: temurin
@@ -87,7 +90,7 @@ jobs:
       # So we have a dummy step here just to initialize it.
       - name: Download Maven wrapper
         run: ./mvnw --version
-      - name: Build and test
+      - name: Run tests
         run: ./mvnw test
       - name: Upload test results
         if: always()
@@ -99,8 +102,9 @@ jobs:
             **/TEST-*
             **/hs_err_pid*
 
+  # Publishes the combined test results of 'test-multiple-os'
   publish-test-results:
-    name: Publish the tests results
+    name: Publish tests results
     needs: test-multiple-os
     if: always()
     runs-on: ubuntu-latest
@@ -118,13 +122,14 @@ jobs:
           check_name: Unit Test results
           files: artifacts/unit-test-*/**/*.xml
 
+  # Builds the projects and attempts to publish a release if the current project version
+  # does not match any existing tags in the repository.
   build-and-release:
-    name: Build and release
-    needs: test-multiple-os
-    if: needs.test-multiple-os.result == 'success' && inputs.is-a-release && github.repository == 'Col-E/InstrumentationServer' && github.ref == 'refs/heads/master'
+    name: Publish release
+    if: inputs.is-a-release && github.repository == 'Col-E/InstrumentationServer' && github.ref == 'refs/heads/master'
     strategy:
       fail-fast: false
-    runs-on: ${{ inputs.operative-system }}
+    runs-on: ${{ inputs.operating-system }}
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -151,7 +156,7 @@ jobs:
         id: tagged
         shell: bash
         run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
-      # If the tag has a problem, it shows a message and exit of the job.
+      # If the tag could not be fetched, show a message and abort the job.
       - name: If tag version has a problem
         if: steps.tagged.outputs.tagExists
         run: |
@@ -160,12 +165,12 @@ jobs:
           echo "Tags $(git tag | wc -l):"
           git tag
           exit 1
-      # Run build.
+      # Run build to generate the release artifacts.
       # Tag does not exist AND trigger was manual. Deploy release artifacts!
-      - name: Build release
+      - name: Build release artifacts
         run: ./mvnw deploy -Prelease -DaltDeploymentRepository=local::default::file:./target/staging-deploy
       # Make release with JReleaser, only running when the project version does not exist as a tag on the repository.
-      - name: Release
+      - name: Publish release
         uses: jreleaser/release-action@v2
         with:
           arguments: full-release
