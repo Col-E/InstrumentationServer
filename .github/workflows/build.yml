@@ -65,7 +65,7 @@ jobs:
       version: ${{ env.LATEST_JAVA_VERSION }}
 
   test-multiple-os:
-    name: "Test in multiple Operative Systems"
+    name: "Test in ${{ matrix.os }}, Java ${{ matrix.java-version }}"
     needs: latest-java-version
     if: needs.latest-java-version.result == 'success' && needs.latest-java-version.outputs.version != null
     strategy:
@@ -107,7 +107,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: artifact-test-${{ matrix.os }}-and-java-${{ matrix.java-version }})
+          name: artifact-test-${{ matrix.os }}-and-java-${{ matrix.java-version }}
           retention-days: 21
           path: |
             **/TEST-*
@@ -140,7 +140,7 @@ jobs:
 #          path: ${{ github.event_path }}
 
       - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v3
+        uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: "artifacts/**/*.xml"
 #
