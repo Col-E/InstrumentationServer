@@ -67,6 +67,7 @@ jobs:
 
   test-multiple-os:
     needs: get-last-java-version
+    if: needs.get-last-java-version.result == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -86,7 +87,7 @@ jobs:
       - name: other-job-variable
         run: echo "${{ toJson(needs.get-last-java-version.outputs.latest-java-version) }}"
       - name: env
-        run: echo "env -> ${{ env }}"
+        run: echo "env -> ${{ toJson(env) }}"
       - name: env.PROJECT_VERSION
         run: echo "env.PROJECT_VERSION -> ${{ env.PROJECT_VERSION }}"
 #      - name: Checkout
