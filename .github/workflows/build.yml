@@ -67,7 +67,7 @@ jobs:
 
   test-multiple-os:
     needs: get-last-java-version
-    if: needs.get-last-java-version.result == 'success'
+    if: needs.get-last-java-version.result == 'success' and needs.get-last-java-version.outputs.latest-java-version != null
     strategy:
       fail-fast: false
       matrix:
