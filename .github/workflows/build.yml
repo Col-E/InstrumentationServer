@@ -63,7 +63,7 @@ jobs:
       - name: env
         run: echo "env -> ${{ env }}"
     outputs:
-      - latest-java-version: ${{ env.LATEST_JAVA_VERSION }}
+      latest-java-version: ${{ env.LATEST_JAVA_VERSION }}
 
   test-multiple-os:
     needs: get-last-java-version
