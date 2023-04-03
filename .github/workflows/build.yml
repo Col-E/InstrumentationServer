@@ -117,10 +117,6 @@ jobs:
         with:
           check_name: Unit Test results
           files: artifacts/unit-test-*/**/*.xml
-      - name: Display files
-        run: ls -lha .
-      - name: Display structure of downloaded files
-        run: ls -lhaR artifacts
 
   build-and-release:
     name: Build and release
