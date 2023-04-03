@@ -51,28 +51,34 @@ jobs:
       - name: API Adoptium - Get Java versions
         id: java-latest-version
         run: |
-          curl --silent \
+          OUTPUT=$(curl --silent \
               -X 'GET' \
               'https://api.adoptium.net/v3/assets/version/%5B1.0%2C111.0%5D?heap_size=normal&image_type=jdk&page=0&page_size=1&project=jdk&release_type=ga&sort_method=DEFAULT&sort_order=DESC&vendor=eclipse' \
               -H 'accept: application/json' \
-            | jq --raw-output '.[0].version_data.major'
+            | jq --raw-output '.[0].version_data.major')
+          echo "OUTPUT: ${OUTPUT}"
+          exit 1
 
   test-multiple-os:
+    needs: get-last-java-version
     strategy:
       fail-fast: false
       matrix:
 #        os: [ ubuntu-latest, windows-latest, macos-latest ]
         os: [ ubuntu-latest ]
-        java-version: [ 8, 11, 20, 21 ]
+#        java-version: [ 8, 11, 20, 21 ]
+        java-version: [ 8 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - name: other-job-variable
-        run: echo "${{ needs.get-last-java-version }}"
+        run: echo "${{ toJson(github) }}"
       - name: other-job-variable
-        run: echo "${{ needs.get-last-java-version.outputs }}"
+        run: echo "${{ toJson(needs.get-last-java-version) }}"
       - name: other-job-variable
-        run: echo "${{ needs.get-last-java-version.outputs.java-latest-version }}"
+        run: echo "${{ toJson(needs.get-last-java-version.outputs) }}"
+      - name: other-job-variable
+        run: echo "${{ toJson(needs.get-last-java-version.outputs.java-latest-version) }}"
 #      - name: Checkout
 #        uses: actions/checkout@v3
 #      - name: Setup Java JDK
