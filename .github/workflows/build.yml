@@ -47,6 +47,7 @@ permissions: {}
 
 jobs:
   latest-java-version:
+    name: "Get latest Java version"
     runs-on: ubuntu-latest
     steps:
       - name: API Adoptium - Get Java versions
@@ -64,6 +65,7 @@ jobs:
       version: ${{ env.LATEST_JAVA_VERSION }}
 
   test-multiple-os:
+    name: "Test in multiple Operative Systems"
     needs: latest-java-version
     if: needs.latest-java-version.result == 'success' && needs.latest-java-version.outputs.version != null
     strategy:
@@ -87,9 +89,6 @@ jobs:
           java-version: ${{ matrix.java-version }}
           check-latest: true
 
-      - name: Java version
-        run: java -version
-
       # The project version extract NEEDS to have the maven wrapper already downloaded.
       # So we have a dummy step here just to initialize it.
       - name: Download maven wrapper
@@ -98,11 +97,17 @@ jobs:
       - name: Build and Test
         run: ./mvnw test
 
+      - name: github.event_path
+        run: echo "github.event_path -> ${{ github.event_path }}"
+
+      - name: github.workspace
+        run: echo "github.workspace -> ${{ github.workspace }}"
+
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v2.3.1
+        uses: actions/upload-artifact@v3
         with:
-          name: Test Results (${{ matrix.os }}, Java ${{ matrix.java-version }})
+          name: artifact-test-${{ matrix.os }}-and-java-${{ matrix.java-version }})
           retention-days: 21
           path: |
             **/TEST-*
@@ -116,7 +121,7 @@ jobs:
 #          path: pytest.xml
 
   publish-test-results:
-    name: "Publish Tests Results"
+    name: "Publish the tests results"
     needs: test-multiple-os
     if: always()
     runs-on: ubuntu-latest
@@ -126,14 +131,16 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: github.event_path
+        run: echo "github.event_path -> ${{ github.event_path }}"
       - name: Download Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: artifacts
 #          path: ${{ github.event_path }}
 
       - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@v3
         with:
           files: "artifacts/**/*.xml"
 #
