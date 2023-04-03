@@ -126,6 +126,7 @@ jobs:
   # does not match any existing tags in the repository.
   build-and-release:
     name: Publish release
+    needs: test-multiple-os
     if: inputs.is-a-release && github.repository == 'Col-E/InstrumentationServer' && github.ref == 'refs/heads/master'
     strategy:
       fail-fast: false
@@ -168,7 +169,7 @@ jobs:
       # Run build to generate the release artifacts.
       # Tag does not exist AND trigger was manual. Deploy release artifacts!
       - name: Build release artifacts
-        run: ./mvnw deploy -Prelease -DaltDeploymentRepository=local::default::file:./target/staging-deploy
+        run: ./mvnw -Dmaven.test.skip=true deploy -Prelease -DaltDeploymentRepository=local::default::file:./target/staging-deploy
       # Make release with JReleaser, only running when the project version does not exist as a tag on the repository.
       - name: Publish release
         uses: jreleaser/release-action@v2
