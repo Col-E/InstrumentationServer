@@ -98,6 +98,23 @@ jobs:
       - name: Build and Test
         run: ./mvnw test
 
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v2.3.1
+        with:
+          name: Test Results (${{ matrix.os }}, Java ${{ matrix.java-version }})
+          retention-days: 21
+          path: |
+            **/TEST-*
+            **/hs_err_pid*
+
+#      - name: Upload Test Results
+#        if: always()
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: Test Results (Python ${{ matrix.python-version }})
+#          path: pytest.xml
+
   publish-test-results:
     name: "Publish Tests Results"
     needs: test-multiple-os
