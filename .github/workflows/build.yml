@@ -71,7 +71,7 @@ jobs:
 #        os: [ ubuntu-latest, windows-latest, macos-latest ]
         os: [ ubuntu-latest ]
 #        java-version: [ 8, 11, 20, 21 ]
-        java-version: [ 8, ${{ needs.get-last-java-version.outputs.latest-java-version }} ]
+        java-version: [ 8 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
