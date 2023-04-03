@@ -51,13 +51,14 @@ jobs:
       - name: API Adoptium - Get Java versions
         id: java-latest-version
         run: |
-          OUTPUT=$(curl --silent \
+          LATEST_JAVA_VERSION=$(curl --silent \
               -X 'GET' \
               'https://api.adoptium.net/v3/assets/version/%5B1.0%2C111.0%5D?heap_size=normal&image_type=jdk&page=0&page_size=1&project=jdk&release_type=ga&sort_method=DEFAULT&sort_order=DESC&vendor=eclipse' \
               -H 'accept: application/json' \
             | jq --raw-output '.[0].version_data.major')
-          echo "OUTPUT: ${OUTPUT}"
-          exit 1
+          echo "LATEST_JAVA_VERSION: ${LATEST_JAVA_VERSION}"
+          echo "LATEST_JAVA_VERSION=${LATEST_JAVA_VERSION}" >> $GITHUB_ENV
+          exit 0
 
   test-multiple-os:
     needs: get-last-java-version
@@ -79,6 +80,8 @@ jobs:
         run: echo "${{ toJson(needs.get-last-java-version.outputs) }}"
       - name: other-job-variable
         run: echo "${{ toJson(needs.get-last-java-version.outputs.java-latest-version) }}"
+      - name: env.PROJECT_VERSION
+        run: echo "env.PROJECT_VERSION -> ${{ env.PROJECT_VERSION }}"
 #      - name: Checkout
 #        uses: actions/checkout@v3
 #      - name: Setup Java JDK
