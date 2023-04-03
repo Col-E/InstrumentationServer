@@ -67,12 +67,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-#        os: [ ubuntu-latest, windows-latest, macos-latest ]
         os: [ ubuntu-latest, windows-latest, macos-latest ]
         java-version:
           - 8
-#          - 11
-#          - ${{ needs.latest-java-version.outputs.version }}
+          - 11
+          - ${{ needs.latest-java-version.outputs.version }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
