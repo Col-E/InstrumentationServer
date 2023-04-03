@@ -94,13 +94,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: artifact-unit-test-${{ matrix.os }}-and-java-${{ matrix.java-version }}
+          name: unit-test-${{ matrix.os }}-and-java-${{ matrix.java-version }}
           retention-days: 21
           path: |
             **/TEST-*
             **/hs_err_pid*
-      - name: Display structure of uploaded files
-        run: ls -lhaR .
 
   publish-test-results:
     name: Publish the tests results
@@ -114,16 +112,16 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
-          path: artifacts-unit-test
+          path: artifacts
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           check_name: Unit Test results
-          files: "artifacts-unit-test/**/*.xml"
+          files: artifacts/unit-test-*/**/*.xml
       - name: Display files
         run: ls -lha .
       - name: Display structure of downloaded files
-        run: ls -lhaR artifacts-unit-test
+        run: ls -lhaR artifacts
 
   build-and-release:
     name: Build and release
