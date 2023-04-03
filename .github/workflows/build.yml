@@ -59,7 +59,7 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v3
         with:
-          distribution: temurin
+          distribution: semeru
           java-version: ${{ matrix.java-version }}
           check-latest: true
 
