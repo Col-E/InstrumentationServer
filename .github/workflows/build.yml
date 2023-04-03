@@ -111,7 +111,7 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v3
         with:
-          distribution: adopt-hotspot
+          distribution: temurin
           java-version: ${{ inputs.java-version }}
 
       # The project version extract NEEDS to have the maven wrapper already downloaded.
