@@ -52,7 +52,7 @@ jobs:
         run: |
           LATEST_JAVA_VERSION=$(curl --silent \
               -X 'GET' \
-              'https://api.xadoptium.net/v3/assets/version/%5B1.0%2C111.0%5D?heap_size=normal&image_type=jdk&page=0&page_size=1&project=jdk&release_type=ga&sort_method=DEFAULT&sort_order=DESC&vendor=eclipse' \
+              'https://api.adoptium.net/v3/assets/version/%5B1.0%2C111.0%5D?heap_size=normal&image_type=jdk&page=0&page_size=1&project=jdk&release_type=ga&sort_method=DEFAULT&sort_order=DESC&vendor=eclipse' \
               -H 'accept: application/json' \
             | jq --raw-output '.[0].version_data.major')
           echo "LATEST_JAVA_VERSION=${LATEST_JAVA_VERSION}" >> $GITHUB_ENV
@@ -71,7 +71,8 @@ jobs:
 #        os: [ ubuntu-latest, windows-latest, macos-latest ]
         os: [ ubuntu-latest ]
 #        java-version: [ 8, 11, 20, 21 ]
-        java-version: [ 8 ]
+#        java-version: [ 8 ]
+        java-version: ${{ needs.get-last-java-version.outputs.latest-java-version }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
