@@ -48,8 +48,6 @@ jobs:
   get-last-java-version:
     runs-on: ubuntu-latest
     steps:
-      - name: env
-        run: echo "env -> ${{ toJson(env) }}"
       - name: API Adoptium - Get Java versions
         run: |
           LATEST_JAVA_VERSION=$(curl --silent \
@@ -57,12 +55,10 @@ jobs:
               'https://api.adoptium.net/v3/assets/version/%5B1.0%2C111.0%5D?heap_size=normal&image_type=jdk&page=0&page_size=1&project=jdk&release_type=ga&sort_method=DEFAULT&sort_order=DESC&vendor=eclipse' \
               -H 'accept: application/json' \
             | jq --raw-output '.[0].version_data.major')
-          echo "LATEST_JAVA_VERSION: ${LATEST_JAVA_VERSION}"
           echo "LATEST_JAVA_VERSION=${LATEST_JAVA_VERSION}" >> $GITHUB_ENV
-      - name: API Adoptium - Get Java versions
-        run: echo "Latest Java version: ${{ env.LATEST_JAVA_VERSION }}"
-      - name: env
-        run: echo "env -> ${{ toJson(env) }}"
+      - name: Latest Java version
+        run: |
+          echo "Latest Java version: ${{ env.LATEST_JAVA_VERSION }}"
     outputs:
       latest-java-version: ${{ env.LATEST_JAVA_VERSION }}
 
@@ -79,18 +75,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
-      - name: other-job-variable
-        run: echo "${{ toJson(github) }}"
-      - name: other-job-variable
+      - name: get-last-java-version
         run: echo "${{ toJson(needs.get-last-java-version) }}"
-      - name: other-job-variable
+      - name: get-last-java-version.outputs
         run: echo "${{ toJson(needs.get-last-java-version.outputs) }}"
-      - name: other-job-variable
+      - name: get-last-java-version.outputs.latest-java-version
         run: echo "${{ toJson(needs.get-last-java-version.outputs.latest-java-version) }}"
       - name: env
         run: echo "env -> ${{ toJson(env) }}"
-      - name: env.PROJECT_VERSION
-        run: echo "env.PROJECT_VERSION -> ${{ env.PROJECT_VERSION }}"
+      - name: env.LATEST_JAVA_VERSION
+        run: echo "env.PROJECT_VERSION -> ${{ env.LATEST_JAVA_VERSION }}"
 #      - name: Checkout
 #        uses: actions/checkout@v3
 #      - name: Setup Java JDK
