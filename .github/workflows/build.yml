@@ -40,7 +40,8 @@ on:
           - 8
         default: 17
 
-permissions: {}
+permissions:
+  contents: write
 
 jobs:
   # Fetches the latest version of Java from Adoptium's REST API
