@@ -70,7 +70,8 @@ public final class ByteBufferSanitizer {
 			int pos = buffer.position();
 			size = Integer.highestOneBit(pos + size - 1) << 1;
 			ByteBuffer newBuffer = allocator.allocate(size);
-			((Buffer) buffer).position(0).limit(pos);
+			ByteBufferCompat.compatPosition(buffer, 0);
+			buffer.limit(pos);
 			newBuffer.put(buffer);
 			buffer = newBuffer;
 			this.buffer = buffer;

@@ -35,7 +35,7 @@ public final class ByteBufferDataInput implements DataInput {
 		ByteBuffer buffer = this.buffer;
 		int position = buffer.position();
 		int skipped = Math.min(buffer.limit(), position + n);
-		buffer.position(skipped);
+		ByteBufferCompat.compatPosition(buffer, skipped);
 		return buffer.position() - position;
 	}
 
@@ -121,7 +121,7 @@ public final class ByteBufferDataInput implements DataInput {
 		}
 		// We need to move position of the original buffer accordingly,
 		// otherwise it will cause later invocations to error.
-		buffer.position(buffer.position() + slice.position());
+		ByteBufferCompat.compatPosition(buffer, buffer.position() + slice.position());
 		return cb.toString();
 	}
 }

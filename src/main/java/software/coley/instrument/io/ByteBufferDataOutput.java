@@ -134,11 +134,13 @@ public final class ByteBufferDataOutput implements DataOutput {
 	public void writeUTF(String s) {
 		CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
 		CharBuffer cb = CharBuffer.wrap(s);
+
 		// Each character will take up
 		// at least 1 byte if all string is ASCII encoded,
 		// so preallocate larger buffer.
 		ByteBuffer buffer = buffer(4 + s.length());
 		int position = buffer.position();
+
 		// Add dummy length, it will be replaced
 		// later after whole string is encoded.
 		buffer.putInt(-1);
