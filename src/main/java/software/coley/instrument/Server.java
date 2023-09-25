@@ -178,9 +178,15 @@ public class Server {
 		ch.setAllResponsesListener((frameId, value) -> {
 			if (frameId != ApiConstants.BROADCAST_MESSAGE_ID) {
 				Logger.debug("Server handling request[id=" + frameId + ", value=" + value + "]");
-				ReplyHandler handler = replyHandlerMap.get(value.getClass());
-				if (handler != null)
-					handler.accept(frameId, value);
+				try {
+					ReplyHandler handler = replyHandlerMap.get(value.getClass());
+					if (handler != null)
+						handler.accept(frameId, value);
+					else
+						Logger.warn("No handler for request: " + value);
+				} catch (Throwable t) {
+					t.printStackTrace();
+				}
 			}
 		});
 		// Setup response handling
