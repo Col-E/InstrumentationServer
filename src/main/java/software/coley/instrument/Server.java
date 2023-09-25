@@ -143,7 +143,7 @@ public class Server {
 	 * Handles data loop for each new client connection.
 	 */
 	private void acceptLoop() {
-		Executors.newSingleThreadExecutor(new NamedThreadFactory("ACCEPT")).submit(() -> {
+		Executors.newSingleThreadExecutor(new NamedThreadFactory(ChannelHandler.threadNameClientAccept)).submit(() -> {
 			try {
 				while (!isClosed()) {
 					SocketChannel accept = serverChannel.accept();
@@ -155,6 +155,7 @@ public class Server {
 						ch.start();
 					}
 				}
+				Logger.info("Accept loop ending, socket is closed");
 			} catch (IOException ex) {
 				Logger.error("Server accept-loop failure: " + ex);
 				close();

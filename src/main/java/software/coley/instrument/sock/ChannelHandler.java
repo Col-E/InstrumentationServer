@@ -48,6 +48,7 @@ public class ChannelHandler {
 	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
 	// Names to use when creating thread pools
+	public static String threadNameClientAccept = "agent-client-accept-loop";
 	public static String threadNameEventHandle = "agent-event-handling";
 	public static String threadNameEventLoop = "agent-event-loop";
 	public static String threadNameRead = "agent-read-loop";
