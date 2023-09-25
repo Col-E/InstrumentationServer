@@ -9,6 +9,7 @@ import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.message.MessageFactory;
 import software.coley.instrument.message.request.*;
+import software.coley.instrument.sock.SocketAvailability;
 import software.coley.instrument.util.DescUtil;
 import software.coley.instrument.util.Logger;
 
@@ -47,10 +48,11 @@ public class LiveTest {
 	@Timeout(15) // Just in case there are regressions causing a lock-up
 	@ResourceLock(SERVER) // Use this lock on other tests if they get split later
 	public void test() throws Exception {
+		int port = SocketAvailability.findAvailable();
 		Process start = null;
 		Client client = null;
 		try {
-			String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/");
+			String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/") +"=port=" + port;
 			ProcessBuilder pb = new ProcessBuilder("java", agent, "-cp", "src/test/resources", "Runner");
 			pb.inheritIO();
 			start = pb.start();
@@ -58,7 +60,7 @@ public class LiveTest {
 			// Setup our local client
 			Thread.sleep(1500);
 			int[] broadcastCounter = new int[1];
-			client = new Client("localhost", Server.DEFAULT_PORT, ByteBufferAllocator.HEAP, MessageFactory.create());
+			client = new Client("localhost", port, ByteBufferAllocator.HEAP, MessageFactory.create());
 			client.setBroadcastListener((type, message) -> broadcastCounter[0]++);
 			assertTrue(client.connect());
 
