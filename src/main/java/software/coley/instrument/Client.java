@@ -50,7 +50,7 @@ public class Client {
 	public Client(String ip, int port, ByteBufferAllocator allocator, MessageFactory factory) throws IOException {
 		this.socketChannel = SocketChannel.open();
 		this.hostAddress = new InetSocketAddress(ip, port);
-		this.handler = new ChannelHandler(socketChannel, allocator, factory);
+		this.handler = new ChannelHandler(socketChannel, allocator, factory, null);
 		this.ip = ip;
 		this.port = port;
 	}

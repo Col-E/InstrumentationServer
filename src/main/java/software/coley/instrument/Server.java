@@ -147,7 +147,10 @@ public class Server {
 			try {
 				while (!isClosed()) {
 					SocketChannel accept = serverChannel.accept();
-					ChannelHandler ch = new ChannelHandler(accept, allocator, factory);
+					ChannelHandler ch = new ChannelHandler(accept, allocator, factory, closedCh -> {
+						clients.remove(closedCh);
+						Logger.info("Disconnect client: " + accept.toString());
+					});
 					configureChannel(ch);
 					synchronized (clients) {
 						Logger.info("New client: " + accept.toString());

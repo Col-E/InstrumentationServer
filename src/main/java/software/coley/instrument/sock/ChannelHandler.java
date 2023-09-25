@@ -11,6 +11,7 @@ import software.coley.instrument.message.broadcast.AbstractBroadcastMessage;
 import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.NamedThreadFactory;
 
+import java.net.SocketException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
@@ -18,6 +19,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 
@@ -60,6 +62,7 @@ public class ChannelHandler {
 	private final ByteChannel channel;
 	private final ByteBufferAllocator allocator;
 	private final MessageFactory factory;
+	private final Consumer<ChannelHandler> closeHandler;
 	private final Map<Integer, ResponseListener> responseListeners = new ConcurrentHashMap<>();
 	private final AtomicInteger nextFrameId = new AtomicInteger(0);
 	private ResponseListener allResponsesListener;
@@ -77,11 +80,15 @@ public class ChannelHandler {
 	 * 		Buffer allocator.
 	 * @param factory
 	 * 		Message factory configured with supported message types.
+	 * @param closeHandler
+	 * 		Optional handler for closing this channel.
 	 */
-	public ChannelHandler(ByteChannel channel, ByteBufferAllocator allocator, MessageFactory factory) {
+	public ChannelHandler(ByteChannel channel, ByteBufferAllocator allocator, MessageFactory factory,
+						  Consumer<ChannelHandler> closeHandler) {
 		this.channel = channel;
 		this.allocator = allocator;
 		this.factory = factory;
+		this.closeHandler = closeHandler;
 	}
 
 	/**
@@ -101,12 +108,14 @@ public class ChannelHandler {
 	 */
 	public void shutdown() {
 		if (running) {
+			Logger.info("Closing channel " + channel.toString());
 			running = false;
 			eventQueue.clear();
 			writeQueue.clear();
 			readLoopFuture.cancel(true);
 			writeLoopFuture.cancel(true);
 			eventLoopFuture.cancel(true);
+			if (closeHandler != null) closeHandler.accept(this);
 		}
 	}
 
@@ -191,6 +200,8 @@ public class ChannelHandler {
 						Logger.warn("Cannot post-event of read-completion[all-response], event-queue is full");
 				}
 			}
+		} catch (SocketException ex) {
+			shutdown();
 		} catch (Throwable t) {
 			// Likely caused because shutdown occurred, can ignore.
 			if (!running)
@@ -236,6 +247,8 @@ public class ChannelHandler {
 			}
 		} catch (InterruptedException ignored) {
 			// Allowed
+		} catch (SocketException ex) {
+			shutdown();
 		} catch (Throwable t) {
 			// Likely caused because shutdown occurred, can ignore.
 			if (!running)
