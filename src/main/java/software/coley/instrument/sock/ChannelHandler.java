@@ -2,6 +2,7 @@ package software.coley.instrument.sock;
 
 import software.coley.instrument.ApiConstants;
 import software.coley.instrument.io.ByteBufferAllocator;
+import software.coley.instrument.io.ByteBufferCompat;
 import software.coley.instrument.io.ByteBufferDataInput;
 import software.coley.instrument.io.ByteBufferDataOutput;
 import software.coley.instrument.io.codec.StructureCodec;
@@ -25,11 +26,11 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
 
 /**
  * Common channel handler for client/server communications.
- * Operates on three threads:
+ * Operates on three primary threads:
  * <ul>
- *     <li>{@code READ} - Thread dedicated to reading messages</li>
- *     <li>{@code WRITE} - Thread dedicated to writing messages</li>
- *     <li>{@code EVENT} - Thread dedicated to handling listener logic</li>
+ *     <li>{@link #threadNameRead} - Thread dedicated to reading messages</li>
+ *     <li>{@link #threadNameWrite} - Thread dedicated to writing messages</li>
+ *     <li>{@link #threadNameEventLoop} - Thread dedicated to handling listener logic</li>
  * </ul>
  * Any call to {@link #write(AbstractMessage, int)} queues a message on the {@code WRITE} thread.
  * <br>
@@ -169,13 +170,14 @@ public class ChannelHandler {
 				// Read next message header
 				while (headerBuffer.position() < HEADER_SIZE)
 					channel.read(headerBuffer);
-				((Buffer) headerBuffer).position(0);
+				ByteBufferCompat.compatPosition(headerBuffer, 0);
 				int readFrameId = headerBuffer.getInt();
 				int messageType = headerBuffer.getShort();
 				int messageLength = headerBuffer.getInt();
 				Logger.debug("Channel read-header: " +
 						"id=" + readFrameId + ", type=" + messageType + ", length=" + messageLength);
 				((Buffer) headerBuffer).clear();
+
 				// Read message content
 				contentBuffer = (messageLength > 0) ? ByteBuffer.allocate(messageLength) : EMPTY_BUFFER;
 				while (contentBuffer.position() < messageLength) {
@@ -183,11 +185,12 @@ public class ChannelHandler {
 					if (reads == -1)
 						throw new ClosedChannelException();
 				}
-				((Buffer) contentBuffer).position(0);
+				ByteBufferCompat.compatPosition(contentBuffer, 0);
 				MessageFactory.MessageInfo info = factory.getInfo(messageType);
 				StructureCodec<AbstractMessage> decoder = info.getCodec();
 				AbstractMessage value = decoder.decode(new ByteBufferDataInput(contentBuffer));
 				Logger.debug("Channel read-body: " + value);
+
 				// Notify listeners
 				if (readFrameId == ApiConstants.BROADCAST_MESSAGE_ID) {
 					if (broadcastListener != null && !eventQueue.offer(() -> broadcastListener.onReceive(messageType, (AbstractBroadcastMessage) value)))
@@ -221,26 +224,31 @@ public class ChannelHandler {
 			while (running) {
 				// Get next write operation
 				WriteResult<?> write = writeQueue.take();
+
 				// Write header to buffer
 				int writeFrameId = write.getFrameId();
 				Logger.debug("Channel write-header: " +
 						"id=" + writeFrameId + ", type=" + write.getDecoderKey() + ", value=" + write.getValue());
 				output.reset();
 				write.writeHeader(output);
+
 				// Write content to buffer
 				int contentStart = output.getBuffer().position();
 				write.writeTo(output);
 				int contentEnd = output.getBuffer().position();
 				ByteBuffer buffer = output.consume();
+
 				// Update header's "length" value
 				int contentLength = contentEnd - contentStart;
 				buffer.putInt(HEADER_SIZE - 4, contentLength);
+
 				// Write buffer to channel
 				while (buffer.position() < buffer.limit())
 					channel.write(buffer);
 				write.complete();
 				Logger.debug("Channel write-body: " +
 						"length=" + contentLength);
+
 				// Notify listener
 				if (writeListener != null && !eventQueue.offer(() -> writeListener.onWrite(writeFrameId, write.getValue())))
 					Logger.warn("Cannot post-event of write-completion, event-queue is full");
