@@ -39,7 +39,7 @@ public final class ByteBufferSanitizer {
 	 * @see ByteBuffer#clear()
 	 */
 	public void clear() {
-		((Buffer) buffer).clear();
+		ByteBufferCompat.compatClear(buffer);
 	}
 
 	/**

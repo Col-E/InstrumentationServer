@@ -19,7 +19,7 @@ import java.nio.Buffer;
  * {@code
  * public abstract class Buffer
  *     public Buffer position(int newPosition);
-
+ *
  * public abstract class ByteBuffer extends Buffer
  *     	&#64;Override
  *     public Buffer position(int newPosition);
@@ -34,5 +34,13 @@ public class ByteBufferCompat {
 	 */
 	public static void compatPosition(Buffer buffer, int position) {
 		buffer.position(position);
+	}
+
+	/**
+	 * @param buffer
+	 * 		Buffer to clear.
+	 */
+	public static void compatClear(Buffer buffer) {
+		buffer.clear();
 	}
 }

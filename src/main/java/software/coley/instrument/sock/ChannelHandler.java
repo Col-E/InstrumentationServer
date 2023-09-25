@@ -176,7 +176,7 @@ public class ChannelHandler {
 				int messageLength = headerBuffer.getInt();
 				Logger.debug("Channel read-header: " +
 						"id=" + readFrameId + ", type=" + messageType + ", length=" + messageLength);
-				((Buffer) headerBuffer).clear();
+				ByteBufferCompat.compatClear(headerBuffer);
 
 				// Read message content
 				contentBuffer = (messageLength > 0) ? ByteBuffer.allocate(messageLength) : EMPTY_BUFFER;
