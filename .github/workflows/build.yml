@@ -158,15 +158,20 @@ jobs:
       - name: Check the package version has corresponding Git tag
         id: tagged
         shell: bash
-        run: git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
-      # If the tag could not be fetched, show a message and abort the job.
-      - name: If tag version has a problem
-        if: steps.tagged.outputs.tagExists
         run: |
-          echo "The tag version has a problem."
+          git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "tagExists=1" >> $GITHUB_OUTPUT || echo "tagExists=0" >> $GITHUB_OUTPUT
+          git show-ref --tags --verify --quiet -- "refs/tags/${{ env.PROJECT_VERSION }}" && echo "Tag for current version exists" || echo "Tag for current version does not exist"
+      # If the tag could not be fetched, show a message and abort the job.
+      # The wonky if logic is a workaround for: https://github.com/actions/runner/issues/1173
+      - name: Abort if tag exists, or existence check fails
+        if: ${{ false && steps.tagged.outputs.tagExists }}
+        run: |
+          echo "Output of 'tagged' step: ${{ steps.tagged.outputs.tagExists }}"
+          echo "Failed to check if tag exists."
           echo "PROJECT_VERSION: ${{ env.PROJECT_VERSION }}"
           echo "Tags $(git tag | wc -l):"
           git tag
+          git show-ref --tags --verify -- "refs/tags/${{ env.PROJECT_VERSION }}"
           exit 1
       # Run build to generate the release artifacts.
       # Tag does not exist AND trigger was manual. Deploy release artifacts!
