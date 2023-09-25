@@ -1,6 +1,7 @@
 package software.coley.instrument.message.reply;
 
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.request.RequestPropertiesMessage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.Properties;
  * Message to reply with system {@link java.util.Properties}.
  *
  * @author Matt Coley
+ * @see RequestPropertiesMessage
  */
 public class ReplyPropertiesMessage extends AbstractReplyMessage {
 	public static final StructureCodec<ReplyPropertiesMessage> CODEC =

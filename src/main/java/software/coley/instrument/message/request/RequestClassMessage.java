@@ -7,6 +7,7 @@ import software.coley.instrument.message.reply.ReplyClassMessage;
  * Message to request bytecode of a class.
  *
  * @author Matt Coley
+ * @see ReplyClassMessage
  */
 public class RequestClassMessage extends AbstractRequestMessage<ReplyClassMessage> {
 	public static final StructureCodec<RequestClassMessage> CODEC =

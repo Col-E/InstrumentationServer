@@ -8,6 +8,7 @@ import software.coley.instrument.message.reply.ReplyClassloadersMessage;
  * Message to request {@link software.coley.instrument.data.ClassLoaderInfo} from the server.
  *
  * @author xxDark
+ * @see ReplyClassloadersMessage
  */
 public class RequestClassloadersMessage extends AbstractRequestMessage<ReplyClassloadersMessage> {
 	public static final StructureCodec<RequestClassloadersMessage> CODEC =

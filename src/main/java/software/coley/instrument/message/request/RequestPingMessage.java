@@ -8,6 +8,7 @@ import software.coley.instrument.message.reply.ReplyPingMessage;
  * Message to request a pong reply from the server.
  *
  * @author Matt Coley
+ * @see ReplyPingMessage
  */
 public class RequestPingMessage extends AbstractRequestMessage<ReplyPingMessage> {
 	public static final StructureCodec<RequestPingMessage> CODEC =

@@ -16,6 +16,7 @@ import static software.coley.instrument.util.DescUtil.*;
  * Message that requests setting a static field.
  *
  * @author Matt Coley
+ * @see ReplyFieldSetMessage
  */
 public class RequestFieldSetMessage extends AbstractRequestMessage<ReplyFieldSetMessage> {
 	public static final StructureCodec<RequestFieldSetMessage> CODEC =

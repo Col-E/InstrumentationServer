@@ -7,6 +7,7 @@ import software.coley.instrument.message.reply.ReplyClassloaderClassesMessage;
  * Message to request all classes belonging to a classloader.
  *
  * @author Matt Coley
+ * @see ReplyClassloaderClassesMessage
  */
 public class RequestClassloaderClassesMessage extends AbstractRequestMessage<ReplyClassloaderClassesMessage> {
 	public static final StructureCodec<RequestClassloaderClassesMessage> CODEC =

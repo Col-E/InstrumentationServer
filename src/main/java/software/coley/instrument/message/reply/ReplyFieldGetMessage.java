@@ -9,6 +9,7 @@ import software.coley.instrument.message.request.RequestFieldGetMessage;
  * {@link Object#toString()} of the field value.
  *
  * @author Matt Coley
+ * @see RequestFieldGetMessage
  */
 public class ReplyFieldGetMessage extends AbstractReplyMessage {
 	public static final StructureCodec<ReplyFieldGetMessage> CODEC =

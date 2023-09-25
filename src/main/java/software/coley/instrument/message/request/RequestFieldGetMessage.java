@@ -16,6 +16,7 @@ import static software.coley.instrument.util.DescUtil.isPrimitiveName;
  * Message to get the content of a static field.
  *
  * @author Matt Coley
+ * @see ReplyFieldGetMessage
  */
 public class RequestFieldGetMessage extends AbstractRequestMessage<ReplyFieldGetMessage> {
 	public static final StructureCodec<RequestFieldGetMessage> CODEC =

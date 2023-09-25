@@ -4,6 +4,7 @@ import software.coley.instrument.data.BasicClassLoaderInfo;
 import software.coley.instrument.data.ClassLoaderInfo;
 import software.coley.instrument.io.codec.CommonCodecs;
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.request.RequestClassloadersMessage;
 
 import java.util.Collection;
 
@@ -11,6 +12,7 @@ import java.util.Collection;
  * Message to reply to client with {@link software.coley.instrument.data.ClassLoaderInfo} values.
  *
  * @author xxDark
+ * @see RequestClassloadersMessage
  */
 public class ReplyClassloadersMessage extends AbstractReplyMessage {
 	public static final StructureCodec<ReplyClassloadersMessage> CODEC =

@@ -8,6 +8,7 @@ import software.coley.instrument.message.request.RequestSetPropertyMessage;
  * Message to notify {@link RequestSetPropertyMessage} completion.
  *
  * @author Matt Coley
+ * @see RequestSetPropertyMessage
  */
 public class ReplySetPropertyMessage extends AbstractReplyMessage {
 	public static final StructureCodec<ReplySetPropertyMessage> CODEC =

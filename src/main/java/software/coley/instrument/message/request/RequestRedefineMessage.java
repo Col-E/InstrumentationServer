@@ -8,6 +8,7 @@ import software.coley.instrument.message.reply.ReplyRedefineMessage;
  * Message to request a redefinition of a class on the server.
  *
  * @author Matt Coley
+ * @see ReplyRedefineMessage
  */
 public class RequestRedefineMessage extends AbstractRequestMessage<ReplyRedefineMessage> {
 	public static final StructureCodec<RequestRedefineMessage> CODEC =

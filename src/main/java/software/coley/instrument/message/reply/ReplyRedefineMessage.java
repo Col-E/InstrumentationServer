@@ -1,11 +1,13 @@
 package software.coley.instrument.message.reply;
 
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.request.RequestRedefineMessage;
 
 /**
  * Message to reply to a redefine request, indicating success or not.
  *
  * @author Matt Coley
+ * @see RequestRedefineMessage
  */
 public class ReplyRedefineMessage extends AbstractReplyMessage {
 	public static final StructureCodec<ReplyRedefineMessage> CODEC =

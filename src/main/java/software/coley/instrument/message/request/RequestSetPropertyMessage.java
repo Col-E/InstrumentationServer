@@ -7,6 +7,7 @@ import software.coley.instrument.message.reply.ReplySetPropertyMessage;
  * Message to request a setting a property in the system {@link java.util.Properties}.
  *
  * @author Matt Coley
+ * @see ReplySetPropertyMessage
  */
 public class RequestSetPropertyMessage extends AbstractRequestMessage<ReplySetPropertyMessage> {
 	public static final StructureCodec<RequestSetPropertyMessage> CODEC =

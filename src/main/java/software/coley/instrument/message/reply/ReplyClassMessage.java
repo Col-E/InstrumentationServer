@@ -2,11 +2,13 @@ package software.coley.instrument.message.reply;
 
 import software.coley.instrument.data.ClassData;
 import software.coley.instrument.io.codec.StructureCodec;
+import software.coley.instrument.message.request.RequestClassMessage;
 
 /**
  * Message to request bytecode of a class.
  *
  * @author Matt Coley
+ * @see RequestClassMessage
  */
 public class ReplyClassMessage extends AbstractReplyMessage {
 	public static final StructureCodec<ReplyClassMessage> CODEC =

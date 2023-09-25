@@ -8,6 +8,7 @@ import software.coley.instrument.message.reply.ReplyPropertiesMessage;
  * Message to request system {@link java.util.Properties} from the server.
  *
  * @author Matt Coley
+ * @see ReplyPropertiesMessage
  */
 public class RequestPropertiesMessage extends AbstractRequestMessage<ReplyPropertiesMessage> {
 	public static final StructureCodec<RequestPropertiesMessage> CODEC =

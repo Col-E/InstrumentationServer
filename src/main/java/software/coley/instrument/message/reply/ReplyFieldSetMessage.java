@@ -7,6 +7,7 @@ import software.coley.instrument.message.request.RequestFieldSetMessage;
  * Message to acknowledge a {@link RequestFieldSetMessage} message.
  *
  * @author Matt Coley
+ * @see RequestFieldSetMessage
  */
 public class ReplyFieldSetMessage extends AbstractReplyMessage {
 	public static final StructureCodec<ReplyFieldSetMessage> CODEC =
