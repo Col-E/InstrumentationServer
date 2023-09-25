@@ -1,5 +1,6 @@
 package software.coley.instrument;
 
+import software.coley.instrument.data.BasicClassLoaderInfo;
 import software.coley.instrument.data.ClassData;
 import software.coley.instrument.data.ServerClassLoaderInfo;
 import software.coley.instrument.message.broadcast.BroadcastClassMessage;
@@ -114,8 +115,9 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	 * @return All loaders.
 	 */
 	public Collection<ServerClassLoaderInfo> getLoaders() {
-		return loaders.values().stream()
+		return new HashSet<>(loaders.values()).stream()
 				.map(i -> i.loaderInfo)
+				.sorted(Comparator.comparingInt(BasicClassLoaderInfo::getId))
 				.collect(Collectors.toList());
 	}
 
