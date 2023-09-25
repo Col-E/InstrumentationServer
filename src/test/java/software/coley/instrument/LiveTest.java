@@ -52,7 +52,7 @@ public class LiveTest {
 		Process start = null;
 		Client client = null;
 		try {
-			String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/") +"=port=" + port;
+			String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/") +"=port=" + port+",debug";
 			ProcessBuilder pb = new ProcessBuilder("java", agent, "-cp", "src/test/resources", "Runner");
 			pb.inheritIO();
 			start = pb.start();
