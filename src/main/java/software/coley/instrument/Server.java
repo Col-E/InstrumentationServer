@@ -112,9 +112,15 @@ public class Server {
 	 */
 	public void close() {
 		if (closed.compareAndSet(false, true)) {
-			Logger.debug("Closing client connections");
 			Discovery.removeDiscovery(port);
 			synchronized (clients) {
+				int count = clients.size();
+				if (count == 0)
+					Logger.debug("No clients connected to close");
+				else if (count == 1)
+					Logger.debug("Closing client connection");
+				else
+					Logger.debug("Closing " + count + " client connections");
 				for (ChannelHandler ch : clients) {
 					ch.shutdown();
 				}
