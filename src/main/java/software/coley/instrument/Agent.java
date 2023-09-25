@@ -2,6 +2,7 @@ package software.coley.instrument;
 
 import software.coley.instrument.io.ByteBufferAllocator;
 import software.coley.instrument.message.MessageFactory;
+import software.coley.instrument.sock.ChannelHandler;
 import software.coley.instrument.util.Logger;
 
 import java.io.IOException;
@@ -59,6 +60,14 @@ public class Agent {
 		else if (agentArgs.contains("warn")) Logger.level = Logger.WARN;
 		else if (agentArgs.contains("info")) Logger.level = Logger.INFO;
 		else if (agentArgs.contains("debug")) Logger.level = Logger.DEBUG;
+
+		// Disable nicely named threads to evade simple thread name checks in targeted applications
+		if (agentArgs.contains("namelessThreads")) {
+			ChannelHandler.threadNameEventHandle = null;
+			ChannelHandler.threadNameEventLoop = null;
+			ChannelHandler.threadNameRead = null;
+			ChannelHandler.threadNameWrite = null;
+		}
 		// Start server
 		if (server == null || server.isClosed()) {
 			Logger.prefix = "[Server]";
