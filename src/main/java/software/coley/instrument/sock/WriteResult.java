@@ -13,11 +13,12 @@ import java.util.concurrent.CompletableFuture;
  * @author Matt Coley
  */
 public class WriteResult<T extends AbstractMessage> {
-	private final CompletableFuture<Void> future = new CompletableFuture<>();
 	private final StructureEncoder<T> encoder;
 	private final int frameId;
 	private final int decoderKey;
 	private final T value;
+	private volatile CompletableFuture<Void> future;
+
 
 	public WriteResult(StructureEncoder<T> encoder, int frameId, int decoderKey, T value) {
 		this.encoder = encoder;
@@ -30,6 +31,19 @@ public class WriteResult<T extends AbstractMessage> {
 	 * @return Future of write completion.
 	 */
 	public CompletableFuture<Void> getFuture() {
+		// For reasons I don't quite understand, the future has to be lazily instantiated.
+		// From: https://github.com/Col-E/InstrumentationServer/issues/13
+		//  - Making this final and doing inline instantiation in the field triggers
+		//    "NoClassDefFoundError: Could not initialize class java.util.concurrent.CompletableFuture"
+		//    on newer JDK's (works on 8 - 11, but 14+ yield this error)
+		//  - Why? I have no idea. But this fixes that.
+		if (future == null) {
+			synchronized (WriteResult.class) {
+				if (future == null) {
+					future = new CompletableFuture<>();
+				}
+			}
+		}
 		return future;
 	}
 
@@ -86,6 +100,6 @@ public class WriteResult<T extends AbstractMessage> {
 	 * Completes the {@link #getFuture() future}, called by channel handler.
 	 */
 	public void complete() {
-		future.complete(null);
+		getFuture().complete(null);
 	}
 }
