@@ -93,14 +93,29 @@ public class Client {
 	 */
 	public boolean connect() {
 		try {
+			connectThrowing();
+			return true;
+		} catch (Exception ex) {
+			return false;
+		}
+	}
+
+	/**
+	 * Connects to the target {@link #hostAddress}.
+	 *
+	 * @throws Exception
+	 * 		When the connection cannot be made.
+	 */
+	public void connectThrowing() throws Exception {
+		try {
 			if (socketChannel.connect(hostAddress)) {
 				handler.start();
-				return true;
+				return;
 			}
 			throw new IOException("Could not connect to: " + hostAddress);
 		} catch (Exception ex) {
 			Logger.error("Failed to connect to host: " + hostAddress + " - " + ex);
-			return false;
+			throw ex;
 		}
 	}
 
