@@ -10,7 +10,7 @@ import java.util.Properties;
  * @author Matt Coley
  */
 public class Discovery {
-	private static final String PREFIX = "Discovery-" + System.getProperty("os.arch") + "-";
+	private static final String PREFIX = "commons-discovery-";
 	private static final String SUFFIX = ".jar";
 
 	/**
