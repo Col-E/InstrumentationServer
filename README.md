@@ -4,6 +4,21 @@ A minimal client-server library that allows simple interaction with a remote pro
 
 ## Usage
 
+Maven dependency:
+```xml
+<dependency>
+    <groupId>software.coley</groupId>
+    <artifactId>instrumentation-server</artifactId>
+    <version>${serverVersion}</version> <!-- See release page for latest version -->
+</dependency>
+```
+
+Gradle dependency:
+```groovy
+implementation group: 'software.coley', name: 'instrumentation-server', version: serverVersion
+implementation "software.coley:instrumentation-server:${serverVersion}"
+```
+
 ### Starting a new process
 
 Example logic to programmatically launch a new process with the agent active:
@@ -32,21 +47,21 @@ Extractor.extractToPath(agentJarPath);
 int openPort = SocketAvailability.findAvailable();
 String optionsStr = "port=" + openPort;
 for (VirtualMachineDescriptor descriptor : VirtualMachine.list()) {
-	// Filter to only apply to a target VM
-	if (!match(descriptor)) continue;
-	// Attach to the VM
-	try {
-		descriptor.provider().attachVirtualMachine(descriptor)
-				.loadAgent(agentJarPath.toAbsolutePath().toString(), optionsStr);
-	} catch (AgentLoadException e) {
-		e.printStackTrace();
-	} catch (AgentInitializationException e) {
-		e.printStackTrace();
-	} catch (IOException e) {
-		e.printStackTrace();
-	} catch (AttachNotSupportedException e) {
-		e.printStackTrace();
-	}
+    // Filter to only apply to a target VM
+    if (!match(descriptor)) continue;
+    // Attach to the VM
+    try {
+        descriptor.provider().attachVirtualMachine(descriptor)
+                .loadAgent(agentJarPath.toAbsolutePath().toString(), optionsStr);
+    } catch (AgentLoadException e) {
+        e.printStackTrace();
+    } catch (AgentInitializationException e) {
+        e.printStackTrace();
+    } catch (IOException e) {
+        e.printStackTrace();
+    } catch (AttachNotSupportedException e) {
+        e.printStackTrace();
+    }
 }
 // Connect
 Client client = new Client("localhost", openPort, ByteBufferAllocator.HEAP);
@@ -54,8 +69,8 @@ if (!client.connect()) System.err.println("Connect failed!");
 // Send request + handle reply
 MemberData memberData = new MemberData("java/lang/Integer", "MAX_VALUE", "I");
 client.sendBlocking(new RequestFieldGetMessage(memberData), reply -> {
-	// reply is asserted to be ReplyFieldGetMessage
-	System.out.println(reply.getValueText());
+    // reply is asserted to be ReplyFieldGetMessage
+    System.out.println(reply.getValueText());
 });
 // Handle general broadcasts
 client.setBroadcastListener((type, message) -> { });
