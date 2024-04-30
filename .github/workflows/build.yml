@@ -18,8 +18,9 @@ on:
         options:
           - ubuntu-latest
           - ubuntu-20.04
-          - macos-latest
-          - macos-11
+# Disabled because MacOS won't pull JDK 8 anymore...
+#          - macos-latest
+#          - macos-11
           - windows-latest
           - windows-2022
         default: ubuntu-latest
@@ -27,15 +28,8 @@ on:
         type: choice
         description: Java version
         options:
-          - 20
-          - 19
-          - 18
+          - 22
           - 17
-          - 16
-          - 15
-          - 14
-          - 13
-          - 12
           - 11
           - 8
         default: 17
