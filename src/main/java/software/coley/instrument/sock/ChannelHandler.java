@@ -13,7 +13,6 @@ import software.coley.instrument.util.Logger;
 import software.coley.instrument.util.NamedThreadFactory;
 
 import java.net.SocketException;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedChannelException;
@@ -45,7 +44,6 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
  * @author Matt Coley
  * @author xxDark
  */
-@SuppressWarnings("RedundantCast")
 public class ChannelHandler {
 	private static final int HEADER_SIZE = 10;
 	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);

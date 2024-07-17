@@ -1,5 +1,6 @@
 package software.coley.instrument.util;
 
+import java.io.File;
 import java.util.Properties;
 
 /**
@@ -59,7 +60,7 @@ public class Discovery {
 		if (path == null || path.isEmpty()) {
 			path = discoveryName;
 		} else if (!path.contains(discoveryName)) {
-			path += ";" + discoveryName;
+			path += File.pathSeparatorChar + discoveryName;
 		}
 		System.setProperty("java.class.path", path);
 	}
@@ -75,7 +76,7 @@ public class Discovery {
 		String discoveryName = createDiscoveryName(port);
 		if (path != null && path.contains(discoveryName)) {
 			int newLength = path.length() - discoveryName.length();
-			if (newLength > 0 && path.charAt(newLength - 1) == ';')
+			if (newLength > 0 && path.charAt(newLength - 1) == File.pathSeparatorChar)
 				newLength--;
 			path = path.substring(0, newLength);
 			System.setProperty("java.class.path", path);
