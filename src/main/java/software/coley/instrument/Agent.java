@@ -75,7 +75,7 @@ public class Agent {
 			int port = getPort(agentArgs);
 			// Create server
 			server = Server.open(instrumentation,
-					new InetSocketAddress("localhost", port),
+					new InetSocketAddress("127.0.0.1", port),
 					ByteBufferAllocator.HEAP,
 					MessageFactory.create());
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> server.close()));
