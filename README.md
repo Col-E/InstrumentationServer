@@ -26,12 +26,14 @@ Example logic to programmatically launch a new process with the agent active:
 // Extract the agent jar to some path
 Path agentJarPath = // ...
 Extractor.extractToPath(agentJarPath);
+
 // Start new process
 String agent = "-javaagent:" + agentJarPath.toString().replace("\\", "/");
 Process remote = new ProcessBuilder("java", agent, "-cp", "<classpath>", "<main-class>").start();
+
 // Connect
 int port = Server.DEFAULT_PORT;
-Client client = new Client("localhost", port, ByteBufferAllocator.HEAP, MessageFactory.create());
+Client client = new Client("127.0.0.1", port, ByteBufferAllocator.HEAP, MessageFactory.create());
 if (!client.connect()) System.err.println("Connect failed!");
 ```
 
@@ -42,6 +44,7 @@ Example logic to programmatically connect to an existing JVM and load the agent:
 // Extract the agent jar to some path
 Path agentJarPath = // ...
 Extractor.extractToPath(agentJarPath);
+
 // Use attach API to connect to remote VM.
 // Options string is optional, but can be used to run the server on a unique port.
 int openPort = SocketAvailability.findAvailable();
@@ -63,15 +66,18 @@ for (VirtualMachineDescriptor descriptor : VirtualMachine.list()) {
         e.printStackTrace();
     }
 }
+
 // Connect
 Client client = new Client("localhost", openPort, ByteBufferAllocator.HEAP);
 if (!client.connect()) System.err.println("Connect failed!");
+
 // Send request + handle reply
 MemberData memberData = new MemberData("java/lang/Integer", "MAX_VALUE", "I");
 client.sendBlocking(new RequestFieldGetMessage(memberData), reply -> {
     // reply is asserted to be ReplyFieldGetMessage
     System.out.println(reply.getValueText());
 });
+
 // Handle general broadcasts
 client.setBroadcastListener((type, message) -> { });
 ```

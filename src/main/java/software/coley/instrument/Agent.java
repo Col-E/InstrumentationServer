@@ -68,6 +68,12 @@ public class Agent {
 			ChannelHandler.threadNameRead = null;
 			ChannelHandler.threadNameWrite = null;
 		}
+
+		// Disable tracking reflection-backing trampoline classes
+		if (agentArgs.contains("notrampolines")) {
+			InstrumentationHelper.notrampolines = true;
+		}
+
 		// Start server
 		if (server == null || server.isClosed()) {
 			Logger.prefix = "[Server]";

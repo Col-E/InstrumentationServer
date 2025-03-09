@@ -15,7 +15,13 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -27,6 +33,9 @@ import java.util.stream.Collectors;
  * @author xxDark
  */
 public final class InstrumentationHelper implements ClassFileTransformer {
+	private static final ProtectionDomain OUR_DOMAIN = Agent.class.getProtectionDomain();
+	// Config
+	public static boolean notrampolines;
 	// ClassLoader collections
 	private final Map<Integer, LoaderData> loaders = new HashMap<>();
 	// Instrumentation
@@ -46,8 +55,8 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 
 	@Override
 	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
-							ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-		if (className != null && !isSelf(protectionDomain))
+	                        ProtectionDomain protectionDomain, byte[] classfileBuffer) {
+		if (className != null && !isSelf(protectionDomain) && !isBlacklisted(loader))
 			getOrCreateDataWrapper(loader)
 					.update(className, classBeingRedefined, classfileBuffer);
 		return classfileBuffer;
@@ -61,7 +70,7 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	 * Given that the agent is loaded from a jar, no other class, outside of the agent's own, should use this domain.
 	 */
 	private static boolean isSelf(ProtectionDomain protectionDomain) {
-		return Agent.class.getProtectionDomain() == protectionDomain;
+		return OUR_DOMAIN == protectionDomain;
 	}
 
 	/**
@@ -100,6 +109,8 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 			InputStream clsStream = ClassLoader.getSystemResourceAsStream(name + ".class");
 			if (clsStream != null) {
 				ClassLoader loader = cls.getClassLoader();
+				if (isBlacklisted(loader))
+					continue;
 				try {
 					byte[] code = Streams.readStream(clsStream);
 					getOrCreateDataWrapper(loader)
@@ -213,6 +224,24 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	 */
 	public Instrumentation instrumentation() {
 		return instrumentation;
+	}
+
+	/**
+	 * @param loader
+	 * 		Loader to check. May be {@code null}.
+	 *
+	 * @return {@code true} when we want to skip looking at the contents of this classloader.
+	 */
+	private static boolean isBlacklisted(ClassLoader loader) {
+		if (loader == null) return false;
+
+		String name = loader.getClass().getName();
+		if (notrampolines && (name.equals("jdk.internal.reflect.DelegatingClassLoader")
+				|| name.equals("sun.reflect.DelegatingClassLoader")
+				|| name.equals("sun.reflect.misc.MethodUtil")))
+			return true;
+
+		return false;
 	}
 
 	private class LoaderData {
