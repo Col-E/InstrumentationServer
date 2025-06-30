@@ -68,7 +68,7 @@ for (VirtualMachineDescriptor descriptor : VirtualMachine.list()) {
 }
 
 // Connect
-Client client = new Client("localhost", openPort, ByteBufferAllocator.HEAP);
+Client client = new Client("127.0.0.1", openPort, ByteBufferAllocator.HEAP);
 if (!client.connect()) System.err.println("Connect failed!");
 
 // Send request + handle reply
