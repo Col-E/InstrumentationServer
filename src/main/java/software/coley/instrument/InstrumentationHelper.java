@@ -5,11 +5,9 @@ import software.coley.instrument.data.ClassData;
 import software.coley.instrument.data.ServerClassLoaderInfo;
 import software.coley.instrument.message.broadcast.BroadcastClassMessage;
 import software.coley.instrument.message.broadcast.BroadcastClassloaderMessage;
+import software.coley.instrument.util.JavaVersion;
 import software.coley.instrument.util.Logger;
-import software.coley.instrument.util.Streams;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
@@ -48,19 +46,21 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 		this.server = server;
 		// Can be null for test purposes
 		if (instrumentation != null) {
+            instrumentation.addTransformer(this, true);
 			populateExisting();
-			instrumentation.addTransformer(this, true);
 		}
 	}
 
-	@Override
-	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
-	                        ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-		if (className != null && !isSelf(protectionDomain) && !isBlacklisted(loader))
-			getOrCreateDataWrapper(loader)
-					.update(className, classBeingRedefined, classfileBuffer);
-		return classfileBuffer;
-	}
+    @Override
+    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
+                            ProtectionDomain protectionDomain, byte[] classfileBuffer) {
+        if (className != null && !isSelf(protectionDomain) && !isBlacklisted(loader)) {
+            getOrCreateDataWrapper(loader)
+                    .update(className, classBeingRedefined, classfileBuffer);
+            Logger.debug("Collecting class: " + className + ",loader hash: " + (loader != null ? Integer.toHexString(loader.hashCode()) : null));
+        }
+        return null;
+    }
 
 	/**
 	 * @param protectionDomain
@@ -101,26 +101,107 @@ public final class InstrumentationHelper implements ClassFileTransformer {
 	 * Call {@link LoaderData#update(String, Class, byte[])} with existing classes from
 	 * {@link Instrumentation#getAllLoadedClasses()}.
 	 */
-	private void populateExisting() {
-		for (Class<?> cls : instrumentation.getAllLoadedClasses()) {
-			if (isSelf(cls.getProtectionDomain()))
-				continue;
-			String name = cls.getName().replace('.', '/');
-			InputStream clsStream = ClassLoader.getSystemResourceAsStream(name + ".class");
-			if (clsStream != null) {
-				ClassLoader loader = cls.getClassLoader();
-				if (isBlacklisted(loader))
-					continue;
-				try {
-					byte[] code = Streams.readStream(clsStream);
-					getOrCreateDataWrapper(loader)
-							.update(name, cls, code);
-				} catch (IOException e) {
-					Logger.debug("Failed to read existing class: " + name);
-				}
-			}
-		}
-	}
+    private void populateExisting() {
+        HashSet<Class<?>> allClasses = new HashSet<>();
+        // This part of the code is attributed to the summary of the test of a springboot2.x application,
+        // jdk range from 8 to 24 (except 9,10,12,14)
+        for (Class<?> cls : instrumentation.getAllLoadedClasses()) {
+            ClassLoader classLoader = cls.getClassLoader();
+            String clsName = cls.getName();
+            if (isSelf(cls.getProtectionDomain())) {
+                Logger.debug("Ignore the agent's own class:: " + clsName);
+                continue;
+            }
+            if (isBlacklisted(classLoader)) {
+                Logger.debug("Ignore class with loader in blacklist: " + clsName);
+                continue;
+            }
+            if (clsName.contains("$$Lambda")) {
+                // because jdk do not support retransform lambda class: https://github.com/alibaba/arthas/issues/1512.
+                Logger.debug("Ignore lambda class: " + clsName);
+                continue;
+            }
+            if (clsName.startsWith("[")) {
+                Logger.debug("Ignore array class: " + clsName);
+                continue;
+            }
+            if(JavaVersion.getMajorVersion() <= 8 && maybeCauseFatalError(clsName)){
+                Logger.debug("Ignore class which may cause fatal error: " + clsName);
+                continue;
+            }
+            if (JavaVersion.getMajorVersion() >= 13 && maybeInvalidClass(clsName)) {
+                Logger.debug("Ignore potentially invalid class: " + clsName);
+                continue;
+            }
+            if (JavaVersion.getMajorVersion() >= 11 && !instrumentation.isModifiableClass(cls)) {
+                Logger.debug("Ignore unmodifiable class: " + clsName);
+                continue;
+            }
+            allClasses.add(cls);
+        }
+        // DEBUG : retransformClassesDebug(allClasses);
+        retransformClasses(allClasses);
+    }
+
+    private boolean maybeCauseFatalError(String clsName) {
+        return clsName.matches("^java\\.lang\\.invoke\\.LambdaForm\\$(B)?MH/\\d+$");
+    }
+
+    private boolean maybeInvalidClass(String clsName) {
+        switch (clsName) {
+            // TODO: It is speculated that the common characteristic of these classes is that
+            //  they contain references to classes that do not exist in the current runtime JVM,
+            //  which are used as attributes or return values, or referenced by static methods.
+            //  There may not yet be a reliable and performant way to separate these classes
+            case "org.springframework.transaction.interceptor.TransactionAspectSupport$ReactiveTransactionSupport":
+            case "org.springframework.boot.autoconfigure.cache.InfinispanCacheConfiguration":
+            case "org.springframework.http.codec.multipart.DefaultPartHttpMessageReader":
+            case "org.springframework.boot.logging.log4j2.Log4J2LoggingSystem":
+            case "org.springframework.web.multipart.commons.CommonsMultipartResolver":
+            case "org.springframework.boot.autoconfigure.cache.RedisCacheConfiguration":
+            case "groovy.grape.GrapeIvy":
+            case "org.mariadb.jdbc.client.socket.impl.UnixDomainSocket":
+            case "org.springframework.web.multipart.commons.CommonsFileUploadSupport":
+            case "org.springframework.transaction.reactive.TransactionalOperator":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * @param classes All class which will be retransformed without error
+     */
+    public void retransformClasses(Set<Class<?>> classes) {
+        Logger.debug("Retransforming classes: " + classes.size());
+        try {
+            instrumentation.retransformClasses(classes.toArray(new Class[0]));
+        } catch (Throwable e) {
+            Logger.error("Retransform Classes class error, msg: " + e.getMessage());
+        }
+    }
+
+    /**
+     * TODO: Executing the retransformClasses method one by one has slightly lower performance.
+     * TODO: This method is used to find which class make something wrong!
+     * TODO: It will be removed when the API is stable.
+     *
+     * @param classes All class which will be retransformed without error
+     */
+    public void retransformClassesDebug(Set<Class<?>> classes) {
+        Logger.debug("Retransforming classes: " + classes.size());
+        for (Class<?> clazz : classes) {
+            try {
+                Logger.debug("Retransforming class: " + clazz.getName() + ", loader hash: " +
+                        (clazz.getClassLoader()!= null ? Integer.toHexString(clazz.getClassLoader().hashCode()) : null));
+                instrumentation.retransformClasses(clazz);
+            } catch (Throwable e) {
+                Logger.error("Retransform class error, msg: " + e.getMessage() +
+                        ", class: " + clazz.getName() + ", loader hash: " +
+                        (clazz.getClassLoader() != null ? Integer.toHexString(clazz.getClassLoader().hashCode()) : null));
+            }
+        }
+    }
 
 	/**
 	 * @return All loaders.
