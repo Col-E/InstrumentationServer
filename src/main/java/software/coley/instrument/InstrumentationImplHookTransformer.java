@@ -3,29 +3,35 @@ package software.coley.instrument;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import software.coley.instrument.util.Logger;
 
 import java.lang.instrument.ClassFileTransformer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.ProtectionDomain;
 
+import static org.objectweb.asm.Opcodes.*;
+
 /**
- * Patches {@code sun.instrument.InstrumentationImpl#addTransformer(ClassFileTransformer, boolean)}.
+ * Patches {@code sun.instrument.TransformerManager#getSnapshotTransformerList()}.
  * <p>
- * Any time a third-party agent adds a transformer, we want to be notified so we can add our own
- * transformer after it and ensure we see all class load events.
+ * This lets us append our helper transformer to the snapshot used by {@code TransformerManager#transform(...)}
+ * without registering the helper as a normal listener when the hook is active.
  * <p>
  * We also assume ASM is available, making this without it and keeping Java 8 compatibility would be ass.
  * Use {@link Extractor#addExtractionContext(Class)} to ensure in your calling context <i>(if bundled as a library)</i>
  * the extracted agent jar includes ASM classes.
  */
 public class InstrumentationImplHookTransformer implements ClassFileTransformer {
-	private static final String TARGET_METHOD_NAME = "addTransformer";
-	private static final String TARGET_METHOD_DESC = "(Ljava/lang/instrument/ClassFileTransformer;Z)V";
-	private static final String HOOK_OWNER = "sun/instrument/InstrumentationHookBridge";
-	private static final String HOOK_NAME = "transformerAdded";
-	private static final String HOOK_DESC = TARGET_METHOD_DESC;
+	private static final String TRANSFORMER_HELPER = InstrumentationHelper.class.getName();
+	private static final String TARGET_METHOD_NAME = "getSnapshotTransformerList";
+	private static final String TARGET_METHOD_DESC = "()[Lsun/instrument/TransformerManager$TransformerInfo;";
+	private static final String TRANSFORMER_INFO_NAME = "sun/instrument/TransformerManager$TransformerInfo";
+	private static final String TRANSFORMER_METHOD_NAME = "transformer";
+	private static final String TRANSFORMER_METHOD_DESCRIPTOR = "()Ljava/lang/instrument/ClassFileTransformer;";
 	private final String targetClassName;
 	private volatile boolean injected;
 
@@ -43,23 +49,27 @@ public class InstrumentationImplHookTransformer implements ClassFileTransformer 
 	@Override
 	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
 	                        ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-		if (!targetClassName.equals(className))
-			return null;
 		try {
+			if (!targetClassName.equals(className))
+				return null;
 			ClassReader reader = new ClassReader(classfileBuffer);
-			ClassWriter writer = new ClassWriter(reader, 0);
+			ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 			HookClassVisitor visitor = new HookClassVisitor(writer);
-			reader.accept(visitor, 0);
-			injected = visitor.wasInjected();
-			return injected ? writer.toByteArray() : null;
+			reader.accept(visitor, ClassReader.EXPAND_FRAMES);
+			boolean wasInjected = visitor.wasInjected();
+			if (wasInjected) {
+				byte[] modified = writer.toByteArray();
+				injected = true; // Only write this after the hook was injected AND the modified bytes were generated successfully.
+				return modified;
+			}
 		} catch (Throwable t) {
-			Logger.warn("Failed to patch InstrumentationImpl.addTransformer: " + t);
-			return null;
+			Logger.warn("Failed to patch TransformerManager.getSnapshotTransformerList: " + t);
 		}
+		return null;
 	}
 
 	/**
-	 * Class visitor to find the target {@code addTransformer} method and patch it with a callback to our hook.
+	 * Class visitor to find the target {@code getSnapshotTransformerList} method and patch it with a callback to our hook.
 	 *
 	 * @see HookMethodVisitor
 	 */
@@ -90,7 +100,6 @@ public class InstrumentationImplHookTransformer implements ClassFileTransformer 
 	private static final class HookMethodVisitor extends MethodVisitor {
 		private final HookClassVisitor owner;
 		private boolean sawHook;
-		private boolean emittedHook;
 
 		private HookMethodVisitor(MethodVisitor methodVisitor, HookClassVisitor owner) {
 			super(Opcodes.ASM9, methodVisitor);
@@ -98,25 +107,95 @@ public class InstrumentationImplHookTransformer implements ClassFileTransformer 
 		}
 
 		@Override
-		public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-			// If we see a call to our hook method, then we know the hook is already present, and we can skip emitting it again.
-			if (opcode == Opcodes.INVOKESTATIC
-					&& HOOK_OWNER.equals(owner)
-					&& HOOK_NAME.equals(name)
-					&& HOOK_DESC.equals(descriptor)) {
+		public void visitLdcInsn(Object value) {
+			if (TRANSFORMER_HELPER.equals(value)) {
 				sawHook = true;
 			}
-			super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+			super.visitLdcInsn(value);
 		}
 
 		@Override
 		public void visitInsn(int opcode) {
-			// The 'addTransformer' method has a single return at the end, so we can just inject our hook before it.
-			if (opcode == Opcodes.RETURN && !sawHook) {
-				super.visitVarInsn(Opcodes.ALOAD, 1);
-				super.visitVarInsn(Opcodes.ILOAD, 2);
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK_OWNER, HOOK_NAME, HOOK_DESC, false);
-				emittedHook = true;
+			/*
+			TransformerInfo[] transformerArray = returnedValue;
+
+			for (int currentIndex = 0; currentIndex < transformerArray.length; currentIndex++) {
+			    TransformerInfo transformerInfo = transformerArray[currentIndex];
+
+			    String helperClassName = transformerInfo
+			            .transformer()
+			            .getClass()
+			            .getName();
+
+			    if (helperClassName.equals(InstrumentationHelper.class.getName())) {
+			        ArrayList<TransformerInfo> transformers =  new ArrayList<>(Arrays.asList(transformerArray));
+
+			        TransformerInfo matchingTransformer = transformers.remove(currentIndex);
+			        transformers.add(matchingTransformer);
+
+			        returnedValue = transformers.toArray(new TransformerInfo[0]);
+			        break;
+			    }
+			}
+			
+			return returnedValue;
+			 */
+			if (opcode == Opcodes.ARETURN && !sawHook) {
+				final int TRANSFORMER_ARRAY = 0;
+				final int CURRENT_INDEX = 1;
+				Label done = new Label();
+				Label notFound = new Label();
+				Label loop = new Label();
+
+				super.visitVarInsn(ASTORE, TRANSFORMER_ARRAY);
+				super.visitInsn(ICONST_0);
+				super.visitVarInsn(ISTORE, CURRENT_INDEX);
+
+				super.visitLabel(loop);
+				super.visitVarInsn(ILOAD, CURRENT_INDEX);
+				super.visitVarInsn(ALOAD, TRANSFORMER_ARRAY);
+				super.visitInsn(ARRAYLENGTH);
+				super.visitJumpInsn(IF_ICMPEQ, done);
+				super.visitVarInsn(ALOAD, TRANSFORMER_ARRAY);
+				super.visitVarInsn(ILOAD, CURRENT_INDEX);
+				super.visitInsn(AALOAD);
+				super.visitMethodInsn(INVOKEVIRTUAL, TRANSFORMER_INFO_NAME, TRANSFORMER_METHOD_NAME, TRANSFORMER_METHOD_DESCRIPTOR, false);
+				super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+				super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getName", "()Ljava/lang/String;", false);
+				super.visitLdcInsn(TRANSFORMER_HELPER);
+				super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "equals", "(Ljava/lang/Object;)Z", false);
+				super.visitJumpInsn(IFEQ, notFound);
+
+				super.visitTypeInsn(NEW, "java/util/ArrayList");
+				super.visitInsn(DUP);
+				super.visitVarInsn(ALOAD, TRANSFORMER_ARRAY);
+				super.visitMethodInsn(INVOKESTATIC, "java/util/Arrays", "asList", "([Ljava/lang/Object;)Ljava/util/List;", false);
+				super.visitMethodInsn(INVOKESPECIAL, "java/util/ArrayList", "<init>", "(Ljava/util/Collection;)V", false);
+				super.visitInsn(DUP);
+				super.visitVarInsn(ILOAD, CURRENT_INDEX);
+				super.visitMethodInsn(INVOKEVIRTUAL, "java/util/ArrayList", "remove", "(I)Ljava/lang/Object;", false);
+				super.visitInsn(POP);
+				super.visitInsn(DUP);
+				super.visitVarInsn(ALOAD, TRANSFORMER_ARRAY);
+				super.visitVarInsn(ILOAD, CURRENT_INDEX);
+				super.visitInsn(AALOAD);
+				super.visitMethodInsn(INVOKEVIRTUAL, "java/util/ArrayList", "add", "(Ljava/lang/Object;)Z", false);
+				super.visitInsn(POP);
+				super.visitInsn(ICONST_0);
+				super.visitTypeInsn(ANEWARRAY, TRANSFORMER_INFO_NAME);
+				super.visitMethodInsn(INVOKEVIRTUAL, "java/util/ArrayList", "toArray", "([Ljava/lang/Object;)[Ljava/lang/Object;", false);
+				super.visitTypeInsn(CHECKCAST, "[L" + TRANSFORMER_INFO_NAME + ';');
+				super.visitVarInsn(ASTORE, TRANSFORMER_ARRAY);
+
+				super.visitJumpInsn(GOTO, done);
+
+				super.visitLabel(notFound);
+				super.visitIincInsn(CURRENT_INDEX, 1);
+				super.visitJumpInsn(GOTO, loop);
+
+				super.visitLabel(done);
+				super.visitVarInsn(ALOAD, TRANSFORMER_ARRAY);
+
 				owner.injected = true;
 			}
 			super.visitInsn(opcode);
@@ -124,8 +203,7 @@ public class InstrumentationImplHookTransformer implements ClassFileTransformer 
 
 		@Override
 		public void visitMaxs(int maxStack, int maxLocals) {
-			// The method should already have enough stack size, but just in case.
-			super.visitMaxs(emittedHook ? Math.max(maxStack, 2) : maxStack, maxLocals);
+			super.visitMaxs(maxStack, Math.max(maxLocals, 2));
 		}
 	}
 }

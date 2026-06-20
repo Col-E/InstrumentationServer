@@ -25,12 +25,17 @@ import java.util.zip.ZipFile;
  */
 public class Extractor {
 	private static final List<Path> extractionPaths = new CopyOnWriteArrayList<>();
+	private static boolean isTest;
 
 	public static void main(String[] args) throws IOException {
 		if (args.length > 0)
 			extractToPath(Paths.get(args[0]));
 		else
 			System.err.println("Provide a target path to extract to");
+	}
+
+	public static void markTestEnv() {
+		isTest = true;
 	}
 
 	public static void extractToPath(Path path) throws IOException {
@@ -63,12 +68,16 @@ public class Extractor {
 	}
 
 	private static List<Item> getItems() throws IOException {
-		// Get self-classes
+		// Get self-classes + ASM classes.
+		//  - Real usage: They are shaded
+		//  - Test usage: They're in their own ASM dependency jar
 		List<Item> list = new ArrayList<>();
+		String asmPath = isTest ?
+				"org/objectweb/asm" :
+				"software/coley/instrumement/shadedasm";
 		String[] prefixes = {
 				Extractor.class.getPackage().getName().replace('.', '/'),
-				"sun/instrument", // For our instrumentation hook class.
-				"org/objectweb/asm" // For ASM classes.
+				asmPath
 		};
 		for (Path pathEntry : Extractor.extractionPaths) {
 			if (Files.isRegularFile(pathEntry)) {

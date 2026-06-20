@@ -74,6 +74,13 @@ public class Agent {
 			InstrumentationHelper.notrampolines = true;
 		}
 
+		// This sucks but I don't feel like parsing number parameters
+		if (agentArgs.contains("smallBatch")) {
+			InstrumentationHelper.existingClassBatchSize /= 2;
+		} else if (agentArgs.contains("largeBatch")) {
+			InstrumentationHelper.existingClassBatchSize *= 2;
+		}
+
 		// Start server
 		if (server == null || server.isClosed()) {
 			Logger.prefix = "[Server]";
