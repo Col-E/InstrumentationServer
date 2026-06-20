@@ -6,7 +6,7 @@
 
     <groupId>software.coley</groupId>
     <artifactId>instrumentation-server</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 
     <name>Instrumentation Server</name>
     <description>Minimal client-server library for interacting with remote JVM instrumentation instances</description>
@@ -26,7 +26,7 @@
     <developers>
         <developer>
             <name>Matt Coley</name>
-            <email>mcoley2@gmu.edu</email>
+            <email>coleysoftware@outlook.com</email>
         </developer>
     </developers>
 
@@ -37,6 +37,19 @@
     </properties>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.ow2.asm/asm -->
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>9.10.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-tree</artifactId>
+            <version>9.10.1</version>
+            <scope>test</scope>
+        </dependency>
         <!--- Testing -->
         <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
         <dependency>
@@ -70,6 +83,27 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.2</version> <!-- Use the latest version available -->
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.objectweb.asm.</pattern>
+                                    <shadedPattern>software.coley.instrumement.shadedasm.</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>dev.grmek.maven</groupId>
                 <artifactId>build-config-plugin</artifactId>

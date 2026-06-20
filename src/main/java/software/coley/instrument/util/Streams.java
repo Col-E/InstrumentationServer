@@ -3,6 +3,7 @@ package software.coley.instrument.util;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 /**
  * Stream IO utils.
@@ -20,11 +21,17 @@ public class Streams {
 	 * 		When the stream could not be read from.
 	 */
 	public static byte[] readStream(InputStream in) throws IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		byte[] buffer = new byte[10240];
-		int len;
-		while ((len = in.read(buffer)) != -1)
-			baos.write(buffer, 0, len);
-		return baos.toByteArray();
+		byte[] buffer = new byte[8192];
+		int offset = 0;
+		while (true) {
+			int r = in.read(buffer, offset, buffer.length - offset);
+			if (r == -1) {
+				return Arrays.copyOf(buffer, offset);
+			}
+			if (r == 0) {
+				buffer = Arrays.copyOf(buffer, buffer.length + 1024);
+			}
+			offset += r;
+		}
 	}
 }

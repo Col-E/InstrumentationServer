@@ -3,7 +3,9 @@ package software.coley.instrument;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.objectweb.asm.ClassWriter;
 import software.coley.instrument.data.ClassLoaderInfo;
 import software.coley.instrument.data.MemberData;
 import software.coley.instrument.io.ByteBufferAllocator;
@@ -25,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Demo setup using the {@code Runner} example class.
  */
+@ExtendWith(SkipIfFlagPresentCondition.class)
 public class LiveTest {
 	private static final String SERVER = "Server";
 	private static Path agentJarPath;
@@ -38,6 +41,8 @@ public class LiveTest {
 			Path target = Paths.get("target");
 			agentJarPath = target.resolve("instrumentation-server-SNAPSHOT.jar");
 			Files.deleteIfExists(agentJarPath);
+			Extractor.markTestEnv();
+			Extractor.addExtractionContext(ClassWriter.class);
 			Extractor.extractToPath(agentJarPath);
 		} catch (IOException ex) {
 			fail("Could not setup agent jar", ex);
