@@ -6,7 +6,7 @@
 
     <groupId>software.coley</groupId>
     <artifactId>instrumentation-server</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 
     <name>Instrumentation Server</name>
     <description>Minimal client-server library for interacting with remote JVM instrumentation instances</description>
@@ -26,7 +26,7 @@
     <developers>
         <developer>
             <name>Matt Coley</name>
-            <email>mcoley2@gmu.edu</email>
+            <email>coleysoftware@outlook.com</email>
         </developer>
     </developers>
 
@@ -37,6 +37,13 @@
     </properties>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.ow2.asm/asm -->
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>9.10.1</version>
+            <scope>provided</scope>
+        </dependency>
         <!--- Testing -->
         <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
         <dependency>
